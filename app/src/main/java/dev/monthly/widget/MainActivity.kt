@@ -1,12 +1,11 @@
 package dev.monthly.widget
 
-import android.app.Activity
-import android.app.AlertDialog
-import android.app.DatePickerDialog
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.view.Gravity
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
@@ -15,59 +14,77 @@ import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ListView
-import android.widget.RadioButton
-import android.widget.RadioGroup
-import android.widget.ArrayAdapter
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import android.view.Menu
-import android.view.MenuItem
+import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
+import com.google.android.material.textfield.TextInputLayout
 import java.time.LocalDate
 import java.time.YearMonth
 
-class MainActivity : Activity() {
+class MainActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_MONTH = "month"
         private const val REQ_BACKUP = 21
         private const val REQ_RESTORE = 22
-        private const val MENU_BACKUP = 1
-        private const val MENU_RESTORE = 2
-        private const val MENU_CARRY = 3
     }
 
     private var ym: YearMonth = YearMonth.now()
+    private var selected: LocalDate? = null
     private var items: MutableList<Item> = mutableListOf()
     private var widgetTheme = Theme()
-    private var shown: List<Entry> = emptyList()
+    private var projectNames: Map<Long, String> = emptyMap()
 
-    private lateinit var monthTitle: TextView
-    private lateinit var adapter: ItemAdapter
+    /** 목록 한 줄: 소제목 또는 일정 */
+    private sealed class Row {
+        class Header(val text: String) : Row()
+        class EntryRow(val e: Entry) : Row()
+    }
+
+    private var rows: List<Row> = emptyList()
+    private lateinit var monthView: MonthView
+    private lateinit var adapter: RowAdapter
+    private lateinit var list: ListView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        toolbar.setOnClickListener { goToday() }
 
         readMonthExtra(intent)
 
-        monthTitle = findViewById(R.id.month_title)
-        val list = findViewById<ListView>(R.id.list)
-        adapter = ItemAdapter()
+        list = findViewById(R.id.list)
+        val header = layoutInflater.inflate(R.layout.header_month, list, false)
+        monthView = header.findViewById(R.id.month_view)
+        list.addHeaderView(header, null, false)
+        adapter = RowAdapter()
         list.adapter = adapter
-        list.emptyView = findViewById(R.id.empty)
-        list.setOnItemClickListener { _, _, pos, _ -> showEditor(shown[pos].item) }
+        list.setOnItemClickListener { _, _, pos, _ ->
+            val r = rows.getOrNull(pos - list.headerViewsCount)
+            if (r is Row.EntryRow) showEditor(r.e.item, null)
+        }
 
-        findViewById<Button>(R.id.btn_prev).setOnClickListener { ym = ym.minusMonths(1); refresh() }
-        findViewById<Button>(R.id.btn_next).setOnClickListener { ym = ym.plusMonths(1); refresh() }
-        monthTitle.setOnClickListener { ym = YearMonth.now(); refresh() }
-        findViewById<Button>(R.id.btn_add).setOnClickListener { showEditor(null) }
-        findViewById<Button>(R.id.btn_projects).setOnClickListener {
-            startActivity(Intent(this, ProjectsActivity::class.java))
+        monthView.onDayClick = { d ->
+            selected = if (selected == d) null else d
+            if (YearMonth.from(d) != ym) ym = YearMonth.from(d)
+            refresh()
         }
-        findViewById<Button>(R.id.btn_decor).setOnClickListener {
-            startActivity(Intent(this, DecorActivity::class.java))
-        }
+        monthView.onDayLongPress = { d -> showEditor(null, d) }
+
+        findViewById<ExtendedFloatingActionButton>(R.id.fab_add).setOnClickListener { showEditor(null, selected) }
+        Nav.setup(this, R.id.nav_schedule)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -86,12 +103,53 @@ class MainActivity : Activity() {
     private fun readMonthExtra(intent: Intent?) {
         val m = intent?.getStringExtra(EXTRA_MONTH) ?: return
         ym = try { YearMonth.parse(m) } catch (e: Exception) { YearMonth.now() }
+        selected = null
+    }
+
+    private fun goToday() {
+        ym = YearMonth.now()
+        selected = null
+        refresh()
     }
 
     private fun refresh() {
-        monthTitle.text = Fmt.month(ym)
-        shown = Store.entries(items, ym, LocalDate.now(), Store.carryOver(this))
+        supportActionBar?.title = Fmt.month(ym)
+        projectNames = Store.loadProjects(this).associate { it.id to "${it.emoji.trim()} ${it.name}".trim() }
+        monthView.setData(ym, items, widgetTheme, selected)
+        rows = buildRows()
         adapter.notifyDataSetChanged()
+    }
+
+    private fun buildRows(): List<Row> {
+        val today = LocalDate.now()
+        val out = mutableListOf<Row>()
+        val sel = selected
+        if (sel != null) {
+            val day = items.mapNotNull { item ->
+                Store.occurrenceIn(item, YearMonth.from(sel))?.takeIf { it == sel }?.let { Entry(item, it) }
+            }.sortedWith(compareBy<Entry>({ it.item.type == ItemType.TODO && it.item.done }, { it.item.id }))
+            out.add(Row.Header(Fmt.monthDay(sel) + (if (day.isEmpty()) " · 일정 없음 (날짜를 길게 누르면 추가)" else "")))
+            day.forEach { out.add(Row.EntryRow(it)) }
+            return out
+        }
+        val all = Store.entries(items, ym, today, Store.carryOver(this))
+        val overdue = all.filter { it.overdue }
+        val done = all.filter { it.item.type == ItemType.TODO && it.item.done }
+        val open = all.filter { !it.overdue && !(it.item.type == ItemType.TODO && it.item.done) }
+        if (overdue.isNotEmpty()) {
+            out.add(Row.Header("밀린 일 ${overdue.size}"))
+            overdue.forEach { out.add(Row.EntryRow(it)) }
+        }
+        if (open.isNotEmpty()) {
+            out.add(Row.Header("일정"))
+            open.forEach { out.add(Row.EntryRow(it)) }
+        }
+        if (done.isNotEmpty()) {
+            out.add(Row.Header("완료 ${done.size}"))
+            done.forEach { out.add(Row.EntryRow(it)) }
+        }
+        if (out.isEmpty()) out.add(Row.Header("이 달에는 일정이 없어요 · ＋ 버튼이나 날짜를 길게 눌러 추가"))
+        return out
     }
 
     private fun persist() {
@@ -106,127 +164,135 @@ class MainActivity : Activity() {
         persist()
     }
 
-    private fun showEditor(existing: Item?) {
-        val v = layoutInflater.inflate(R.layout.dialog_item, null)
+    // ---------- 일정 추가/수정 시트 ----------
+    private fun showEditor(existing: Item?, presetDate: LocalDate?) {
+        val sheet = BottomSheetDialog(this)
+        val v = layoutInflater.inflate(R.layout.sheet_item, null)
+        sheet.setContentView(v)
+        sheet.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        sheet.behavior.skipCollapsed = true
+
+        val titleLayout = v.findViewById<TextInputLayout>(R.id.title_layout)
         val titleInput = v.findViewById<EditText>(R.id.input_title)
         val dateBtn = v.findViewById<Button>(R.id.input_date)
-        val typeGroup = v.findViewById<RadioGroup>(R.id.type_group)
-        val rbTodo = v.findViewById<RadioButton>(R.id.type_todo)
-        val rbDday = v.findViewById<RadioButton>(R.id.type_dday)
-        val yearlyBox = v.findViewById<CheckBox>(R.id.input_yearly)
+        val toggle = v.findViewById<MaterialButtonToggleGroup>(R.id.type_toggle)
+        val yearlySwitch = v.findViewById<MaterialSwitch>(R.id.input_yearly)
         val emojiInput = v.findViewById<EditText>(R.id.input_emoji)
-        val emojiRow = v.findViewById<LinearLayout>(R.id.emoji_row)
+        val emojiGroup = v.findViewById<ChipGroup>(R.id.emoji_group)
         val colorRow = v.findViewById<LinearLayout>(R.id.color_row)
+        val projectInput = v.findViewById<MaterialAutoCompleteTextView>(R.id.input_project)
+        v.findViewById<TextView>(R.id.sheet_title).text = if (existing == null) "새 일정" else "일정 수정"
 
         val today = LocalDate.now()
-        var date: LocalDate = existing?.date
-            ?: if (ym == YearMonth.from(today)) today else ym.atDay(1)
+        var date: LocalDate = existing?.date ?: presetDate ?: if (ym == YearMonth.from(today)) today else ym.atDay(1)
         var color = existing?.color ?: -1
+
+        toggle.check(if (existing?.type == ItemType.DDAY) R.id.btn_type_dday else R.id.btn_type_todo)
+        fun isDday() = toggle.checkedButtonId == R.id.btn_type_dday
+        yearlySwitch.isChecked = existing?.yearly ?: false
+        yearlySwitch.visibility = if (isDday()) View.VISIBLE else View.GONE
+        toggle.addOnButtonCheckedListener { _, _, _ ->
+            yearlySwitch.visibility = if (isDday()) View.VISIBLE else View.GONE
+        }
 
         if (existing != null) {
             titleInput.setText(existing.title)
             titleInput.setSelection(existing.title.length)
             emojiInput.setText(existing.emoji)
-            yearlyBox.isChecked = existing.yearly
-            if (existing.type == ItemType.DDAY) rbDday.isChecked = true else rbTodo.isChecked = true
-        }
-        yearlyBox.visibility = if (rbDday.isChecked) View.VISIBLE else View.GONE
-        typeGroup.setOnCheckedChangeListener { _, _ ->
-            yearlyBox.visibility = if (rbDday.isChecked) View.VISIBLE else View.GONE
         }
 
-        dateBtn.text = "📅  " + Fmt.longDate(date)
+        fun showDate() { dateBtn.text = Fmt.longDate(date) }
+        showDate()
         dateBtn.setOnClickListener {
-            DatePickerDialog(this, { _, y, m, d ->
-                date = LocalDate.of(y, m + 1, d)
-                dateBtn.text = "📅  " + Fmt.longDate(date)
-            }, date.year, date.monthValue - 1, date.dayOfMonth).show()
+            DatePick.show(this, date, "날짜") { d ->
+                date = d
+                showDate()
+            }
         }
 
-        // 아이콘 빠른 선택
-        val density = resources.displayMetrics.density
-        val choices = listOf("✕") + Palette.emojis.toList()
-        for (em in choices) {
-            val t = TextView(this)
-            t.text = em
-            t.textSize = 22f
-            t.gravity = Gravity.CENTER
-            t.layoutParams = LinearLayout.LayoutParams((44 * density).toInt(), (44 * density).toInt())
-            t.setOnClickListener { emojiInput.setText(if (em == "✕") "" else em) }
-            emojiRow.addView(t)
+        // 아이콘 칩
+        for (em in Palette.emojis) {
+            val chip = layoutInflater.inflate(R.layout.chip_emoji, emojiGroup, false) as Chip
+            chip.text = em
+            chip.isCheckable = true
+            chip.isCheckedIconVisible = false
+            chip.isChecked = existing?.emoji?.trim() == em
+            chip.setOnClickListener { emojiInput.setText(if (chip.isChecked) em else "") }
+            emojiGroup.addView(chip)
         }
 
         Swatches.fill(colorRow, Palette.colors, color, true) { color = it }
 
         // 프로젝트 고르기
         val projects = Store.loadProjects(this)
-        val spinner = v.findViewById<Spinner>(R.id.input_project)
         val names = listOf("없음") + projects.map { "${it.emoji.trim()} ${it.name}".trim() }
-        spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, names)
-        val pIndex = projects.indexOfFirst { it.id == (existing?.projectId ?: 0L) }
-        spinner.setSelection(if (pIndex >= 0) pIndex + 1 else 0)
+        projectInput.setSimpleItems(names.toTypedArray())
+        var projectIndex = projects.indexOfFirst { it.id == (existing?.projectId ?: 0L) } + 1
+        projectInput.setText(names[projectIndex], false)
+        projectInput.setOnItemClickListener { _, _, pos, _ -> projectIndex = pos }
 
-        val builder = AlertDialog.Builder(this)
-            .setTitle(if (existing == null) "새 일정" else "일정 수정")
-            .setView(v)
-            .setPositiveButton("저장", null)
-            .setNegativeButton("취소", null)
+        val del = v.findViewById<Button>(R.id.btn_delete)
         if (existing != null) {
-            builder.setNeutralButton("삭제") { _, _ ->
+            del.visibility = View.VISIBLE
+            del.setOnClickListener {
                 items.removeAll { it.id == existing.id }
                 persist()
+                sheet.dismiss()
             }
         }
-        val dialog = builder.create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val title = titleInput.text.toString().trim()
-                if (title.isEmpty()) {
-                    titleInput.error = "내용을 입력해 주세요"
-                    return@setOnClickListener
-                }
-                val type = if (rbDday.isChecked) ItemType.DDAY else ItemType.TODO
-                val emoji = emojiInput.text.toString().trim()
-                val yearly = type == ItemType.DDAY && yearlyBox.isChecked
-                val sel = spinner.selectedItemPosition
-                val project = if (sel > 0) projects[sel - 1] else null
-                val projectId = project?.id ?: 0L
-                // 프로젝트 일정인데 색을 안 골랐으면 프로젝트 색을 따라감
-                val finalColor = if (color < 0 && project != null) project.color else color
-                val item = existing?.copy(date = date, title = title, type = type, color = finalColor, emoji = emoji, yearly = yearly, projectId = projectId)
-                    ?: Item(System.currentTimeMillis(), date, title, type, false, finalColor, emoji, yearly, projectId)
-                if (!yearly && YearMonth.from(date) != ym && type == ItemType.TODO) ym = YearMonth.from(date)
-                replace(item)
-                dialog.dismiss()
+
+        v.findViewById<Button>(R.id.btn_save).setOnClickListener {
+            val title = titleInput.text.toString().trim()
+            if (title.isEmpty()) {
+                titleLayout.error = "내용을 입력해 주세요"
+                return@setOnClickListener
             }
+            val type = if (isDday()) ItemType.DDAY else ItemType.TODO
+            val emoji = emojiInput.text.toString().trim()
+            val yearly = type == ItemType.DDAY && yearlySwitch.isChecked
+            val project = projects.getOrNull(projectIndex - 1)
+            val projectId = project?.id ?: 0L
+            // 프로젝트 일정인데 색을 안 골랐으면 프로젝트 색을 따라감
+            val finalColor = if (color < 0 && project != null) project.color else color
+            val item = existing?.copy(
+                date = date, title = title, type = type, color = finalColor,
+                emoji = emoji, yearly = yearly, projectId = projectId,
+            ) ?: Item(System.currentTimeMillis(), date, title, type, false, finalColor, emoji, yearly, projectId)
+            if (!yearly && YearMonth.from(date) != ym) ym = YearMonth.from(date)
+            replace(item)
+            sheet.dismiss()
         }
-        dialog.show()
+        sheet.show()
     }
 
-    // ---------- 메뉴: 백업 / 복원 / 이월 ----------
+    // ---------- 메뉴: 달 이동 / 백업 / 복원 / 이월 ----------
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(0, MENU_BACKUP, 0, "백업 파일 만들기")
-        menu.add(0, MENU_RESTORE, 1, "백업에서 복원하기")
-        menu.add(0, MENU_CARRY, 2, "못 한 일 이번 달로 이월").setCheckable(true).isChecked = Store.carryOver(this)
+        menuInflater.inflate(R.menu.main_menu, menu)
+        menu.findItem(R.id.action_carry)?.isChecked = Store.carryOver(this)
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            MENU_BACKUP -> {
+            R.id.action_prev -> { ym = ym.minusMonths(1); selected = null; refresh() }
+            R.id.action_next -> { ym = ym.plusMonths(1); selected = null; refresh() }
+            R.id.action_today -> goToday()
+            R.id.action_backup -> {
                 val i = Intent(Intent.ACTION_CREATE_DOCUMENT)
                     .addCategory(Intent.CATEGORY_OPENABLE)
                     .setType("application/zip")
                     .putExtra(Intent.EXTRA_TITLE, "이번달위젯_백업_${LocalDate.now()}.zip")
+                @Suppress("DEPRECATION")
                 startActivityForResult(i, REQ_BACKUP)
             }
-            MENU_RESTORE -> {
+            R.id.action_restore -> {
                 val i = Intent(Intent.ACTION_OPEN_DOCUMENT)
                     .addCategory(Intent.CATEGORY_OPENABLE)
                     .setType("*/*")
+                @Suppress("DEPRECATION")
                 startActivityForResult(i, REQ_RESTORE)
             }
-            MENU_CARRY -> {
+            R.id.action_carry -> {
                 val v = !Store.carryOver(this)
                 Store.setCarryOver(this, v)
                 item.isChecked = v
@@ -240,6 +306,7 @@ class MainActivity : Activity() {
 
     @Deprecated("단순 구현")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
         val uri = data?.data ?: return
         if (resultCode != RESULT_OK) return
@@ -249,7 +316,7 @@ class MainActivity : Activity() {
                 runOnUiThread { toast(if (ok) "백업 파일을 저장했어요" else "백업에 실패했어요") }
             }.start()
         } else if (requestCode == REQ_RESTORE) {
-            AlertDialog.Builder(this)
+            MaterialAlertDialogBuilder(this)
                 .setTitle("백업에서 복원")
                 .setMessage("지금 있는 일정·프로젝트·꾸미기 설정이 백업 내용으로 바뀌어요. 계속할까요?")
                 .setPositiveButton("복원") { _, _ ->
@@ -275,14 +342,24 @@ class MainActivity : Activity() {
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
-    private inner class ItemAdapter : BaseAdapter() {
-        override fun getCount() = shown.size
-        override fun getItem(position: Int): Any = shown[position]
-        override fun getItemId(position: Int) = shown[position].item.id
+    // ---------- 목록 ----------
+    private inner class RowAdapter : BaseAdapter() {
+        override fun getCount() = rows.size
+        override fun getItem(position: Int): Any = rows[position]
+        override fun getItemId(position: Int) = position.toLong()
+        override fun getViewTypeCount() = 2
+        override fun getItemViewType(position: Int) = if (rows[position] is Row.Header) 0 else 1
+        override fun isEnabled(position: Int) = rows[position] is Row.EntryRow
 
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val r = rows[position]
+            if (r is Row.Header) {
+                val v = convertView ?: layoutInflater.inflate(R.layout.row_header, parent, false)
+                v.findViewById<TextView>(R.id.header_text).text = r.text
+                return v
+            }
+            val entry = (r as Row.EntryRow).e
             val view = convertView ?: layoutInflater.inflate(R.layout.item_row, parent, false)
-            val entry = shown[position]
             val item = entry.item
             val ci = Palette.itemColor(item, widgetTheme)
             val check = view.findViewById<CheckBox>(R.id.row_check)
@@ -291,16 +368,24 @@ class MainActivity : Activity() {
             val date = view.findViewById<TextView>(R.id.row_date)
 
             title.text = Fmt.titleWithEmoji(item)
-            date.text = (if (entry.overdue) "밀림 · " else "") + Fmt.longDate(entry.date) + (if (item.yearly) "  · 매년" else "")
-            date.setTextColor(getColor(if (entry.overdue) R.color.sunday else R.color.text_secondary))
+            val parts = mutableListOf<String>()
+            if (entry.overdue) parts.add("밀림")
+            parts.add(Fmt.longDate(entry.date))
+            if (item.yearly) parts.add("매년")
+            projectNames[item.projectId]?.let { parts.add(it) }
+            date.text = parts.joinToString(" · ")
+            date.setTextColor(
+                if (entry.overdue) getColor(R.color.sunday)
+                else com.google.android.material.color.MaterialColors.getColor(date, com.google.android.material.R.attr.colorOnSurfaceVariant)
+            )
             check.setOnCheckedChangeListener(null)
 
             if (item.type == ItemType.DDAY) {
                 check.visibility = View.GONE
                 badge.visibility = View.VISIBLE
                 badge.text = Fmt.dday(entry.date, LocalDate.now())
-                val pill = android.graphics.drawable.GradientDrawable()
-                pill.cornerRadius = 8 * resources.displayMetrics.density
+                val pill = GradientDrawable()
+                pill.cornerRadius = 10 * resources.displayMetrics.density
                 pill.setColor(ci)
                 badge.background = pill
                 title.alpha = 1f
@@ -309,7 +394,7 @@ class MainActivity : Activity() {
                 check.visibility = View.VISIBLE
                 check.buttonTintList = ColorStateList.valueOf(ci)
                 check.isChecked = item.done
-                title.alpha = if (item.done) 0.4f else 1f
+                title.alpha = if (item.done) 0.45f else 1f
                 check.setOnCheckedChangeListener { _, checked -> replace(item.copy(done = checked)) }
             }
             return view

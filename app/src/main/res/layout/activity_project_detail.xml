@@ -1,66 +1,96 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/pd_title"
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="22sp"
-        android:textStyle="bold" />
-    <TextView
-        android:id="@+id/pd_meta"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp" />
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorSurface" />
 
-    <ProgressBar
-        android:id="@+id/pd_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="10dp"
-        android:layout_marginTop="12dp"
-        android:max="100" />
-    <TextView
-        android:id="@+id/pd_pct"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
         android:layout_marginTop="4dp"
-        android:textSize="14sp" />
-
-    <LinearLayout
-        android:id="@+id/pd_manual_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:visibility="gone">
-        <Button android:id="@+id/pd_minus" android:layout_width="56dp" android:layout_height="wrap_content" android:text="−" android:textSize="20sp" />
-        <TextView
-            android:id="@+id/pd_manual_text"
-            android:layout_width="0dp"
+        android:layout_marginEnd="12dp"
+        app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp">
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:textSize="16sp" />
-        <Button android:id="@+id/pd_plus" android:layout_width="56dp" android:layout_height="wrap_content" android:text="+" android:textSize="20sp" />
-    </LinearLayout>
+            android:orientation="vertical"
+            android:padding="16dp">
+            <TextView
+                android:id="@+id/pd_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                android:textColor="?attr/colorOnSurface" />
+            <TextView
+                android:id="@+id/pd_meta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/pd_progress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:max="100"
+                app:trackCornerRadius="5dp"
+                app:trackThickness="10dp" />
+            <TextView
+                android:id="@+id/pd_pct"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textAppearance="?attr/textAppearanceBodyMedium" />
+            <LinearLayout
+                android:id="@+id/pd_manual_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+                <Button android:id="@+id/pd_minus" style="?attr/materialButtonOutlinedStyle" android:layout_width="56dp" android:layout_height="wrap_content" android:text="−" android:textSize="18sp" />
+                <TextView
+                    android:id="@+id/pd_manual_text"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:textAppearance="?attr/textAppearanceTitleMedium" />
+                <Button android:id="@+id/pd_plus" style="?attr/materialButtonOutlinedStyle" android:layout_width="56dp" android:layout_height="wrap_content" android:text="+" android:textSize="18sp" />
+            </LinearLayout>
+            <Button
+                android:id="@+id/pd_link"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="작업 사이트 열기"
+                app:icon="@drawable/ic_link" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-        <Button android:id="@+id/pd_edit" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="편집" />
-        <Button android:id="@+id/pd_link" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:text="작업 사이트" />
-        <Button android:id="@+id/pd_delete" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:text="삭제" />
-    </LinearLayout>
-
-    <TextView style="@style/SectionLabel" android:text="체크리스트" />
+        android:paddingStart="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="6dp"
+        android:text="체크리스트"
+        android:textAppearance="?attr/textAppearanceLabelLarge"
+        android:textColor="?attr/colorOnSurfaceVariant" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -70,22 +100,26 @@
             android:id="@+id/pd_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:divider="@color/divider"
-            android:dividerHeight="1dp" />
+            android:clipToPadding="false"
+            android:divider="@null"
+            android:dividerHeight="0dp"
+            android:listSelector="@android:color/transparent"
+            android:paddingBottom="96dp" />
         <TextView
             android:id="@+id/pd_empty"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
+            android:padding="32dp"
             android:text="할 일이 없어요. 아래 버튼으로 추가해 보세요."
-            android:textColor="@color/text_secondary" />
+            android:textColor="?attr/colorOnSurfaceVariant" />
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/pd_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:text="할 일"
+            app:icon="@drawable/ic_add" />
     </FrameLayout>
-
-    <Button
-        android:id="@+id/pd_add"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="+ 할 일 추가"
-        android:textSize="16sp" />
 </LinearLayout>

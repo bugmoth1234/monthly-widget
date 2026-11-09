@@ -1,8 +1,16 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorSurface"
+        app:title="프로젝트" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -12,22 +20,34 @@
             android:id="@+id/project_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:divider="@color/divider"
-            android:dividerHeight="1dp" />
+            android:clipToPadding="false"
+            android:divider="@null"
+            android:dividerHeight="0dp"
+            android:listSelector="@android:color/transparent"
+            android:paddingTop="4dp"
+            android:paddingBottom="96dp" />
         <TextView
             android:id="@+id/project_empty"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
+            android:padding="32dp"
             android:text="아직 프로젝트가 없어요.\n회지나 커뮤 준비를 프로젝트로 만들어 보세요."
-            android:textColor="@color/text_secondary" />
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/fab_new_project"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:text="새 프로젝트"
+            app:icon="@drawable/ic_add" />
     </FrameLayout>
 
-    <Button
-        android:id="@+id/btn_new_project"
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="+ 새 프로젝트"
-        android:textSize="16sp" />
+        app:menu="@menu/bottom_nav" />
 </LinearLayout>

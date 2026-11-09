@@ -1,14 +1,18 @@
 package dev.monthly.widget
 
-import android.app.Activity
-import android.app.AlertDialog
-import android.app.DatePickerDialog
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
@@ -17,7 +21,6 @@ import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ListView
-import android.widget.ProgressBar
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
@@ -42,7 +45,7 @@ object Links {
 /** 프로젝트 목록 한 줄 그리기 (목록 화면과 상세 화면이 같이 씀) */
 private fun bindProjectSummary(
     ctx: Context, p: Project, items: List<Item>,
-    icon: TextView?, name: TextView, dday: TextView?, bar: ProgressBar, meta: TextView,
+    icon: TextView?, name: TextView, dday: TextView?, bar: LinearProgressIndicator, meta: TextView,
 ) {
     val today = LocalDate.now()
     val col = Palette.color(p.color)
@@ -52,14 +55,15 @@ private fun bindProjectSummary(
     name.text = if (icon == null) "${p.emoji.trim()} ${p.name}".trim() else p.name
     dday?.text = Fmt.dday(p.deadline, today)
     dday?.setTextColor(col)
-    bar.progress = pct
-    bar.progressTintList = ColorStateList.valueOf(col)
+    bar.setProgressCompat(pct, false)
+    bar.setIndicatorColor(col)
+    bar.trackColor = (col and 0x00FFFFFF) or (0x33 shl 24)
     val prog = if (p.manual) "$done / $total ${p.unit}".trim() else "체크리스트 $done / $total"
     meta.text = "${Fmt.longDate(p.deadline)} 마감 · $prog · $pct%"
     if (dday == null) meta.text = "${Fmt.longDate(p.deadline)} 마감 · ${Fmt.dday(p.deadline, today)}"
 }
 
-class ProjectsActivity : Activity() {
+class ProjectsActivity : AppCompatActivity() {
     private var projects: List<Project> = emptyList()
     private var items: List<Item> = emptyList()
     private lateinit var adapter: BaseAdapter
@@ -67,6 +71,8 @@ class ProjectsActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_projects)
+        setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
+        Nav.setup(this, R.id.nav_projects)
         val list = findViewById<ListView>(R.id.project_list)
         adapter = object : BaseAdapter() {
             override fun getCount() = projects.size
@@ -87,7 +93,7 @@ class ProjectsActivity : Activity() {
         list.setOnItemClickListener { _, _, pos, _ ->
             startActivity(Intent(this, ProjectDetailActivity::class.java).putExtra(ProjectDetailActivity.EXTRA_ID, projects[pos].id))
         }
-        findViewById<Button>(R.id.btn_new_project).setOnClickListener {
+        findViewById<View>(R.id.fab_new_project).setOnClickListener {
             ProjectEditor.show(this, null) { p ->
                 startActivity(Intent(this, ProjectDetailActivity::class.java).putExtra(ProjectDetailActivity.EXTRA_ID, p.id))
             }
@@ -107,7 +113,7 @@ class ProjectsActivity : Activity() {
     }
 }
 
-class ProjectDetailActivity : Activity() {
+class ProjectDetailActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_ID = "project_id"
     }
@@ -121,6 +127,8 @@ class ProjectDetailActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_project_detail)
+        setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         pid = intent.getLongExtra(EXTRA_ID, 0)
 
         val list = findViewById<ListView>(R.id.pd_list)
@@ -152,14 +160,29 @@ class ProjectDetailActivity : Activity() {
         list.emptyView = findViewById(R.id.pd_empty)
         list.setOnItemClickListener { _, _, pos, _ -> editTask(tasks[pos]) }
 
-        findViewById<Button>(R.id.pd_add).setOnClickListener { editTask(null) }
-        findViewById<Button>(R.id.pd_edit).setOnClickListener {
-            project?.let { p -> ProjectEditor.show(this, p) { reload() } }
-        }
+        findViewById<View>(R.id.pd_add).setOnClickListener { editTask(null) }
         findViewById<Button>(R.id.pd_link).setOnClickListener { project?.let { Links.open(this, it.link) } }
-        findViewById<Button>(R.id.pd_delete).setOnClickListener { confirmDelete() }
         findViewById<Button>(R.id.pd_minus).setOnClickListener { bump(-1) }
         findViewById<Button>(R.id.pd_plus).setOnClickListener { bump(+1) }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.project_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.action_edit -> project?.let { p -> ProjectEditor.show(this, p) { reload() } }
+            R.id.action_delete -> confirmDelete()
+            else -> return super.onOptionsItemSelected(item)
+        }
+        return true
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return true
     }
 
     override fun onResume() {
@@ -219,14 +242,14 @@ class ProjectDetailActivity : Activity() {
             titleInput.setText(existing.title)
             titleInput.setSelection(existing.title.length)
         }
-        dateBtn.text = "📅  " + Fmt.longDate(date)
+        dateBtn.text = Fmt.longDate(date)
         dateBtn.setOnClickListener {
-            DatePickerDialog(this, { _, y, m, d ->
-                date = LocalDate.of(y, m + 1, d)
-                dateBtn.text = "📅  " + Fmt.longDate(date)
-            }, date.year, date.monthValue - 1, date.dayOfMonth).show()
+            DatePick.show(this, date, "날짜") { d ->
+                date = d
+                dateBtn.text = Fmt.longDate(date)
+            }
         }
-        val b = AlertDialog.Builder(this)
+        val b = MaterialAlertDialogBuilder(this)
             .setTitle(if (existing == null) "할 일 추가" else "할 일 수정")
             .setView(v)
             .setPositiveButton("저장", null)
@@ -258,7 +281,7 @@ class ProjectDetailActivity : Activity() {
 
     private fun confirmDelete() {
         val p = project ?: return
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("프로젝트 삭제")
             .setMessage("'${p.name}'와 체크리스트 ${tasks.size}개가 모두 지워져요.")
             .setPositiveButton("삭제") { _, _ ->
@@ -276,7 +299,7 @@ class ProjectDetailActivity : Activity() {
 object ProjectEditor {
     private val EMOJIS = arrayOf("📕", "📘", "📗", "📙", "✒️", "🖋️", "📚", "⚔️", "🗺️", "🐉", "🎲", "🎨", "✨", "📦", "🏝️", "🌙")
 
-    fun show(act: Activity, existing: Project?, onSaved: (Project) -> Unit) {
+    fun show(act: AppCompatActivity, existing: Project?, onSaved: (Project) -> Unit) {
         val v = act.layoutInflater.inflate(R.layout.dialog_project, null)
         val nameIn = v.findViewById<EditText>(R.id.pj_in_name)
         val deadlineBtn = v.findViewById<Button>(R.id.pj_in_deadline)
@@ -312,13 +335,13 @@ object ProjectEditor {
             manualBox.visibility = if (rbManual.isChecked) View.VISIBLE else View.GONE
         }
 
-        fun showDeadline() { deadlineBtn.text = "🏁  마감: " + Fmt.longDate(deadline) }
+        fun showDeadline() { deadlineBtn.text = "마감: " + Fmt.longDate(deadline) }
         showDeadline()
         deadlineBtn.setOnClickListener {
-            DatePickerDialog(act, { _, y, m, d ->
-                deadline = LocalDate.of(y, m + 1, d)
+            DatePick.show(act, deadline, "마감일") { d ->
+                deadline = d
                 showDeadline()
-            }, deadline.year, deadline.monthValue - 1, deadline.dayOfMonth).show()
+            }
         }
 
         val density = act.resources.displayMetrics.density
@@ -333,7 +356,7 @@ object ProjectEditor {
         }
         Swatches.fill(colorRow, Palette.colors, color, false) { color = it }
 
-        val dlg = AlertDialog.Builder(act)
+        val dlg = MaterialAlertDialogBuilder(act)
             .setTitle(if (existing == null) "새 프로젝트" else "프로젝트 편집")
             .setView(v)
             .setPositiveButton("저장", null)

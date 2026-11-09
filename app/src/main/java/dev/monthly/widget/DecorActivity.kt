@@ -1,7 +1,8 @@
 package dev.monthly.widget
 
-import android.app.Activity
-import android.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
@@ -19,7 +20,7 @@ import android.widget.Toast
 import java.io.File
 import java.util.UUID
 
-class DecorActivity : Activity() {
+class DecorActivity : AppCompatActivity() {
 
     companion object {
         private const val REQ_STICKER = 11
@@ -42,6 +43,9 @@ class DecorActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_decor)
+        setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
+        Nav.setup(this, R.id.nav_decor)
+        setupSections()
         decor = Store.loadTheme(this)
         items = Store.load(this)
 
@@ -227,7 +231,7 @@ class DecorActivity : Activity() {
             rv.setViewVisibility(R.id.sticker_layer, View.GONE) // 스티커는 편집 뷰가 직접 그림
             host.removeAllViews()
             host.addView(
-                rv.apply(this, host),
+                rv.apply(applicationContext, host), // 앱 테마 영향 없이 위젯과 똑같이
                 FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
             )
         } catch (e: Exception) {
@@ -440,6 +444,32 @@ class DecorActivity : Activity() {
         valBar.setOnSeekBarChangeListener(listener)
     }
 
+    // ---------- 접고 펴는 묶음 ----------
+    private fun setupSections() {
+        val box = findViewById<LinearLayout>(R.id.sections)
+        val prefs = getSharedPreferences("ui", MODE_PRIVATE)
+        for (i in 0 until box.childCount) {
+            val card = box.getChildAt(i) as? ViewGroup ?: continue
+            val inner = card.getChildAt(0) as? ViewGroup ?: continue
+            if (inner.childCount < 2) continue
+            val header = inner.getChildAt(0)
+            val body = inner.getChildAt(1)
+            val arrow = header.findViewWithTag<View>("arrow")
+            val key = "decor_sec_$i"
+            var open = prefs.getBoolean(key, i < 2) // 처음엔 추천 테마·스티커만 펼침
+            fun apply() {
+                body.visibility = if (open) View.VISIBLE else View.GONE
+                arrow?.rotation = if (open) 180f else 0f
+            }
+            apply()
+            header.setOnClickListener {
+                open = !open
+                apply()
+                prefs.edit().putBoolean(key, open).apply()
+            }
+        }
+    }
+
     // ---------- 스타일 ----------
     private fun setupStyle() {
         fun radio(groupId: Int, ids: IntArray, current: Int, apply: (Int) -> Unit) {
@@ -621,7 +651,7 @@ class DecorActivity : Activity() {
     }
 
     private fun confirmReset() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("꾸미기 초기화")
             .setMessage("스티커, 배경·제목 이미지, 글꼴, 색 설정이 모두 지워져요. 일정은 그대로예요.")
             .setPositiveButton("초기화") { _, _ ->

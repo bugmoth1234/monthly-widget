@@ -1,4 +1,5 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 <LinearLayout
@@ -9,23 +10,24 @@
     android:paddingEnd="24dp"
     android:paddingTop="12dp">
 
-    <EditText
-        android:id="@+id/pj_in_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="프로젝트 이름 (예: 회지 1권, 커뮤 오픈)"
+    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:hint="프로젝트 이름 (예: 회지 1권, 커뮤 오픈)">
+
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/pj_in_name" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:inputType="text"
         android:maxLines="1" />
 
+    </com.google.android.material.textfield.TextInputLayout>
+
     <Button
         android:id="@+id/pj_in_deadline"
-        style="?android:attr/borderlessButtonStyle"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_marginTop="8dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="start|center_vertical"
         android:textSize="16sp" />
 
-    <TextView style="@style/SectionLabel" android:text="아이콘" />
+    <TextView style="@style/SheetLabel" android:text="아이콘" />
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -36,16 +38,14 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal" />
     </HorizontalScrollView>
-    <EditText
-        android:id="@+id/pj_in_emoji"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="직접 입력"
+    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:hint="아이콘 직접 입력">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/pj_in_emoji" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:inputType="text"
         android:maxLength="8"
         android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
 
-    <TextView style="@style/SectionLabel" android:text="색" />
+    <TextView style="@style/SheetLabel" android:text="색" />
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -57,16 +57,14 @@
             android:orientation="horizontal" />
     </HorizontalScrollView>
 
-    <TextView style="@style/SectionLabel" android:text="작업 사이트 (선택)" />
-    <EditText
-        android:id="@+id/pj_in_link"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="예: my-zine.vercel.app"
+    <TextView style="@style/SheetLabel" android:text="작업 사이트 (선택)" />
+    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:hint="작업 사이트 주소 (예: my-zine.vercel.app)">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/pj_in_link" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:inputType="textUri"
         android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
 
-    <TextView style="@style/SectionLabel" android:text="진행률" />
+    <TextView style="@style/SheetLabel" android:text="진행률" />
     <RadioGroup
         android:id="@+id/pj_in_mode"
         android:layout_width="match_parent"
@@ -81,26 +79,22 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:visibility="gone">
-        <EditText
-            android:id="@+id/pj_in_total"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="목표 (예: 10)"
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:hint="목표 (예: 10)" android:layout_weight="1">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/pj_in_total" android:layout_width="match_parent" android:layout_height="wrap_content"
+            
             android:inputType="number"
             android:maxLength="6" />
-        <EditText
-            android:id="@+id/pj_in_unit"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:hint="단위 (예: 꼭지, 쪽)"
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:hint="단위 (예: 꼭지, 쪽)" android:layout_weight="1" android:layout_marginStart="8dp">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/pj_in_unit" android:layout_width="match_parent" android:layout_height="wrap_content"
+            
+            
             android:inputType="text"
             android:maxLength="8" />
+        </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 
-    <TextView android:id="@+id/pj_in_template_label" style="@style/SectionLabel" android:text="체크리스트 초안 (마감일에서 거꾸로 날짜 계산)" />
+    <TextView android:id="@+id/pj_in_template_label" style="@style/SheetLabel" android:text="체크리스트 초안 (마감일에서 거꾸로 날짜 계산)" />
     <RadioGroup
         android:id="@+id/pj_in_template"
         android:layout_width="match_parent"
@@ -116,7 +110,7 @@
         android:layout_height="wrap_content"
         android:paddingBottom="8dp"
         android:text="초안은 만든 뒤에 단계 이름·날짜를 고치거나 지울 수 있어요."
-        android:textColor="@color/text_secondary"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="13sp" />
 </LinearLayout>
 </ScrollView>

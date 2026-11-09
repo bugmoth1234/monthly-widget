@@ -1,0 +1,9 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item android:id="@+id/action_prev" android:icon="@drawable/ic_chevron_left" android:title="이전 달" app:showAsAction="always" />
+    <item android:id="@+id/action_next" android:icon="@drawable/ic_chevron_right" android:title="다음 달" app:showAsAction="always" />
+    <item android:id="@+id/action_today" android:title="이번 달로" app:showAsAction="never" />
+    <item android:id="@+id/action_backup" android:title="백업 파일 만들기" app:showAsAction="never" />
+    <item android:id="@+id/action_restore" android:title="백업에서 복원하기" app:showAsAction="never" />
+    <item android:id="@+id/action_carry" android:checkable="true" android:title="못 한 일 이번 달로 이월" app:showAsAction="never" />
+</menu>

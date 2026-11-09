@@ -1,0 +1,23 @@
+<resources>
+    <!-- 앱 화면 색: 눈이 편한 블루그레이 + 오프화이트 -->
+    <color name="m_primary">#FF4F6D8A</color>
+    <color name="m_on_primary">#FFFFFFFF</color>
+    <color name="m_primary_container">#FFD6E4F2</color>
+    <color name="m_on_primary_container">#FF0C2A44</color>
+    <color name="m_secondary">#FF6B7A72</color>
+    <color name="m_on_secondary">#FFFFFFFF</color>
+    <color name="m_secondary_container">#FFDDE8E0</color>
+    <color name="m_on_secondary_container">#FF26332C</color>
+    <color name="m_background">#FFFAF9F7</color>
+    <color name="m_surface">#FFFAF9F7</color>
+    <color name="m_on_surface">#FF1F1F22</color>
+    <color name="m_on_surface_variant">#FF5D5E63</color>
+    <color name="m_outline">#FF8E8F94</color>
+    <color name="m_outline_variant">#FFDAD9D6</color>
+    <color name="m_surface_container_lowest">#FFFFFFFF</color>
+    <color name="m_surface_container_low">#FFF4F3F1</color>
+    <color name="m_surface_container">#FFEFEEEC</color>
+    <color name="m_surface_container_high">#FFE9E8E6</color>
+    <color name="m_surface_container_highest">#FFE3E2E0</color>
+    <color name="m_error">#FFBA1A1A</color>
+</resources>

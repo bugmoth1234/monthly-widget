@@ -5,16 +5,15 @@
     android:paddingStart="24dp"
     android:paddingEnd="24dp"
     android:paddingTop="12dp">
-    <EditText
-        android:id="@+id/task_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="할 일 (예: 3꼭지 초고)"
+    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:hint="할 일 (예: 3꼭지 초고)">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/task_title" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:inputType="text"
         android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
     <Button
         android:id="@+id/task_date"
-        style="?android:attr/borderlessButtonStyle"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_marginTop="8dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="start|center_vertical"
