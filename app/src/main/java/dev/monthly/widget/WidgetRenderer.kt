@@ -105,16 +105,12 @@ object WidgetRenderer {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-    /** 프로젝트 줄을 누르면: 작업 사이트가 있으면 사이트, 없으면 앱의 프로젝트 화면 */
+    /** 프로젝트 줄을 누르면 앱의 프로젝트 화면 */
     private fun projectPI(ctx: Context, p: Project): PendingIntent {
-        val intent = if (p.link.isNotBlank()) {
-            Intent(Intent.ACTION_VIEW, android.net.Uri.parse(Links.normalize(p.link)))
-        } else {
-            Intent(ctx, ProjectDetailActivity::class.java)
-                .setData(android.net.Uri.parse("monthly://project/${p.id}"))
-                .putExtra(ProjectDetailActivity.EXTRA_ID, p.id)
-        }
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val intent = Intent(ctx, ProjectDetailActivity::class.java)
+            .setData(android.net.Uri.parse("monthly://project/${p.id}"))
+            .putExtra(ProjectDetailActivity.EXTRA_ID, p.id)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return PendingIntent.getActivity(
             ctx, 5000 + (p.id % 100000).toInt(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,

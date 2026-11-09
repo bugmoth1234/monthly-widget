@@ -27,21 +27,6 @@ import android.widget.TextView
 import android.widget.Toast
 import java.time.LocalDate
 
-object Links {
-    fun normalize(link: String): String {
-        val t = link.trim()
-        return if (t.startsWith("http://") || t.startsWith("https://")) t else "https://$t"
-    }
-
-    fun open(ctx: Context, link: String) {
-        try {
-            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(normalize(link))))
-        } catch (e: Exception) {
-            Toast.makeText(ctx, "주소를 열 수 없어요", Toast.LENGTH_SHORT).show()
-        }
-    }
-}
-
 /** 프로젝트 목록 한 줄 그리기 (목록 화면과 상세 화면이 같이 씀) */
 private fun bindProjectSummary(
     ctx: Context, p: Project, items: List<Item>,
@@ -161,7 +146,6 @@ class ProjectDetailActivity : AppCompatActivity() {
         list.setOnItemClickListener { _, _, pos, _ -> editTask(tasks[pos]) }
 
         findViewById<View>(R.id.pd_add).setOnClickListener { editTask(null) }
-        findViewById<Button>(R.id.pd_link).setOnClickListener { project?.let { Links.open(this, it.link) } }
         findViewById<Button>(R.id.pd_minus).setOnClickListener { bump(-1) }
         findViewById<Button>(R.id.pd_plus).setOnClickListener { bump(+1) }
     }
@@ -209,7 +193,6 @@ class ProjectDetailActivity : AppCompatActivity() {
             "진행률 ${Store.percent(p, items)}%" + (if (p.manual) "" else "  ($done / $total 완료)")
         findViewById<View>(R.id.pd_manual_row).visibility = if (p.manual) View.VISIBLE else View.GONE
         findViewById<TextView>(R.id.pd_manual_text).text = "$done / $total ${p.unit}".trim()
-        findViewById<View>(R.id.pd_link).visibility = if (p.link.isNotBlank()) View.VISIBLE else View.GONE
         adapter.notifyDataSetChanged()
     }
 
@@ -306,7 +289,6 @@ object ProjectEditor {
         val emojiIn = v.findViewById<EditText>(R.id.pj_in_emoji)
         val emojiRow = v.findViewById<LinearLayout>(R.id.pj_in_emoji_row)
         val colorRow = v.findViewById<LinearLayout>(R.id.pj_in_color_row)
-        val linkIn = v.findViewById<EditText>(R.id.pj_in_link)
         val modeGroup = v.findViewById<RadioGroup>(R.id.pj_in_mode)
         val rbManual = v.findViewById<RadioButton>(R.id.rb_mode_manual)
         val manualBox = v.findViewById<View>(R.id.pj_in_manual_box)
@@ -321,7 +303,6 @@ object ProjectEditor {
         if (existing != null) {
             nameIn.setText(existing.name)
             emojiIn.setText(existing.emoji)
-            linkIn.setText(existing.link)
             if (existing.manual) rbManual.isChecked = true
             totalIn.setText(existing.manualTotal.toString())
             unitIn.setText(existing.unit)
@@ -373,11 +354,11 @@ object ProjectEditor {
                 val total = (totalIn.text.toString().toIntOrNull() ?: 10).coerceAtLeast(1)
                 val p = existing?.copy(
                     name = name, emoji = emojiIn.text.toString().trim(), color = color, deadline = deadline,
-                    link = linkIn.text.toString().trim(), manual = manual, manualTotal = total,
+                    manual = manual, manualTotal = total,
                     manualDone = (existing?.manualDone ?: 0).coerceAtMost(total), unit = unitIn.text.toString().trim(),
                 ) ?: Project(
                     System.currentTimeMillis(), name, emojiIn.text.toString().trim(), color, deadline,
-                    linkIn.text.toString().trim(), manual, 0, total, unitIn.text.toString().trim(),
+                    "", manual, 0, total, unitIn.text.toString().trim(),
                 )
 
                 val projects = Store.loadProjects(act)

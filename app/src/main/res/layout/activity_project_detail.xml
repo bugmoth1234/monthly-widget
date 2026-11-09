@@ -71,14 +71,6 @@
                     android:textAppearance="?attr/textAppearanceTitleMedium" />
                 <Button android:id="@+id/pd_plus" style="?attr/materialButtonOutlinedStyle" android:layout_width="56dp" android:layout_height="wrap_content" android:text="+" android:textSize="18sp" />
             </LinearLayout>
-            <Button
-                android:id="@+id/pd_link"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="작업 사이트 열기"
-                app:icon="@drawable/ic_link" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
