@@ -172,7 +172,7 @@ object WidgetRenderer {
         val bp = BodyPainter(theme, ink, tf, bw, u)
 
         rv.setImageViewBitmap(R.id.body_img, bp.calendar(items, ym, today))
-        for (id in intArrayOf(R.id.caption, R.id.weekday_row, R.id.grid, R.id.cal_bg)) rv.setViewVisibility(id, View.GONE)
+        for (id in intArrayOf(R.id.caption, R.id.weekday_row, R.id.grid)) rv.setViewVisibility(id, View.GONE)
         rv.setViewVisibility(R.id.body_img, View.VISIBLE)
 
         rv.removeAllViews(R.id.list)
@@ -242,15 +242,6 @@ object WidgetRenderer {
             rv.setTextColor(WEEKDAY_IDS[i], if (i == 0) ink.sun else if (i == 6) ink.sat else ink.secondary)
         }
         rv.setInt(R.id.divider, "setBackgroundColor", ink.divider)
-
-        // 달력 칸 뒤 판
-        if (theme.calBgColor != 0) {
-            rv.setViewVisibility(R.id.cal_bg, View.VISIBLE)
-            rv.setInt(R.id.cal_bg, "setColorFilter", theme.calBgColor)
-            rv.setInt(R.id.cal_bg, "setImageAlpha", theme.calBgAlpha.coerceIn(0, 100) * 255 / 100)
-            val cp = (6 * d).toInt()
-            rv.setViewPadding(R.id.cal_inner, cp / 2, cp, cp / 2, cp / 2)
-        }
 
         // ---------- 달력 ----------
         val marks = HashMap<LocalDate, Entry>()

@@ -44,8 +44,8 @@ object Palette {
     fun color(i: Int) = colors[idx(i)]
     fun bg(i: Int) = bgColors[i.coerceIn(0, bgColors.size - 1)]
 
-    /** 달력 칸 배경으로 고를 수 있는 색: 배경 색 + 포인트 팔레트 */
-    val calBgChoices: IntArray get() = bgColors + colors
+    /** 단색 배경의 실제 색: 직접 고른 색 > 배경 팔레트 색 */
+    fun bgColor(theme: Theme): Int = if (theme.customBg != 0) theme.customBg else bg(theme.bgColor)
 
     /** 색 칸 위에 올리는 글자색 (오늘 동그라미, 디데이 배지) */
     fun onColor(bg: Int, theme: Theme): Int = when (theme.onAccentMode) {
@@ -89,7 +89,7 @@ object Inks {
         1 -> DARK
         2 -> LIGHT
         else -> when (t.bgMode) {
-            1 -> if (Color.luminance(Palette.bg(t.bgColor)) < 0.35f) LIGHT else DARK
+            1 -> if (Color.luminance(Palette.bgColor(t)) < 0.35f) LIGHT else DARK
             2 -> if (t.dim >= 30) LIGHT else DARK
             else -> Ink(
                 ctx.getColor(R.color.text_primary), ctx.getColor(R.color.text_secondary),

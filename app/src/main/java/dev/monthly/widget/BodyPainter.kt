@@ -73,9 +73,7 @@ class BodyPainter(
         val weeks = (lead + ym.lengthOfMonth() + 6) / 7
         val cellH = 37 * u
         val captionH = if (theme.caption.isNotBlank()) 18 * u else 0f
-        val panel = theme.calBgColor != 0
-        val pad = if (panel) 6 * u else 0f
-        val bmp = canvas(captionH + 27 * u + weeks * cellH + pad * 1.5f)
+        val bmp = canvas(captionH + 27 * u + weeks * cellH)
         val colW = w / 7f
         var y = 0f
 
@@ -85,11 +83,6 @@ class BodyPainter(
         }
 
         y += 4 * u
-        if (panel) {
-            fill.color = (theme.calBgColor and 0x00FFFFFF) or ((theme.calBgAlpha.coerceIn(0, 100) * 255 / 100) shl 24)
-            c.drawRoundRect(RectF(0f, y, w.toFloat(), y + 23 * u + weeks * cellH + pad * 1.5f), 12 * u, 12 * u, fill)
-            y += pad
-        }
         val labels = Fmt.weekLabels(theme)
         for (i in 0 until 7) {
             val color = if (i == 0) ink.sun else if (i == 6) ink.sat else ink.secondary

@@ -464,6 +464,28 @@
                                 android:layout_height="wrap_content"
                                 android:orientation="horizontal" />
                         </HorizontalScrollView>
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="배경색 직접 고르기 (막대를 움직이면 단색 배경으로 적용)" />
+                            <FrameLayout
+                                android:id="@+id/bg_preview"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp" />
+                        </LinearLayout>
+                        <TextView style="@style/SliderLabel" android:id="@+id/bg_hue_label" android:text="색상" />
+                        <SeekBar android:id="@+id/seek_bg_hue" style="@style/ColorBar" android:max="359" />
+                        <TextView style="@style/SliderLabel" android:id="@+id/bg_sat_label" android:text="채도" />
+                        <SeekBar android:id="@+id/seek_bg_sat" style="@style/ColorBar" android:max="100" />
+                        <TextView style="@style/SliderLabel" android:id="@+id/bg_val_label" android:text="밝기(명도)" />
+                        <SeekBar android:id="@+id/seek_bg_val" style="@style/ColorBar" android:max="100" />
                         <Button style="@style/Widget.Material3.Button.TonalButton"
                             android:id="@+id/btn_bg_photo"
                             android:layout_width="match_parent"
@@ -490,23 +512,6 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:max="80" />
-                        <TextView style="@style/SliderLabel" android:layout_marginTop="14dp" android:text="달력 칸 배경 (요일·날짜 뒤에 까는 판)" />
-                        <HorizontalScrollView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:scrollbars="none">
-                            <LinearLayout
-                                android:id="@+id/calbg_row"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal" />
-                        </HorizontalScrollView>
-                        <TextView style="@style/SliderLabel" android:id="@+id/calbg_alpha_label" android:text="달력 칸 배경 진하기" />
-                        <SeekBar
-                            android:id="@+id/seek_calbg_alpha"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:max="100" />
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>

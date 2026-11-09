@@ -125,11 +125,8 @@ class DecorActivity : AppCompatActivity() {
         setupAccentPicker()
         setupStyle()
         setupPresets()
-        Swatches.fill(findViewById<LinearLayout>(R.id.bgcolor_row), Palette.bgColors, decor.bgColor, false) {
-            decor = decor.copy(bgColor = it, bgMode = 1)
-            syncBgRadio()
-            save()
-        }
+        fillBgRow()
+        setupBgPicker()
 
         bgGroup = findViewById(R.id.bg_mode)
         syncBgRadio()
@@ -492,7 +489,6 @@ class DecorActivity : AppCompatActivity() {
         radio(R.id.on_accent_mode, intArrayOf(R.id.rb_on_auto, R.id.rb_on_white, R.id.rb_on_black), decor.onAccentMode) {
             decor = decor.copy(onAccentMode = it)
         }
-        setupCalendarBg()
         radio(R.id.border_style, intArrayOf(R.id.rb_border_none, R.id.rb_border_line, R.id.rb_border_stitch), decor.border) {
             decor = decor.copy(border = it)
         }
@@ -510,29 +506,80 @@ class DecorActivity : AppCompatActivity() {
         }
     }
 
-    // ---------- 달력 칸 배경 ----------
-    private fun setupCalendarBg() {
-        val choices = Palette.calBgChoices
-        val row = findViewById<LinearLayout>(R.id.calbg_row)
-        val sel = if (decor.calBgColor == 0) -1 else choices.indexOf(decor.calBgColor)
-        Swatches.fill(row, choices, sel, true, "없음") {
-            decor = decor.copy(calBgColor = if (it < 0) 0 else choices[it])
+    // ---------- 배경색: 팔레트 + 색상/채도/밝기 ----------
+    private lateinit var bgHue: SeekBar
+    private lateinit var bgSat: SeekBar
+    private lateinit var bgVal: SeekBar
+
+    private fun fillBgRow() {
+        val selected = if (decor.customBg != 0) -2 else decor.bgColor
+        Swatches.fill(findViewById<LinearLayout>(R.id.bgcolor_row), Palette.bgColors, selected, false) {
+            decor = decor.copy(bgColor = it, bgMode = 1, customBg = 0)
+            syncBgRadio()
+            syncBgBars(Palette.bgColors[it])
             save()
         }
-        val bar = findViewById<SeekBar>(R.id.seek_calbg_alpha)
-        val label = findViewById<TextView>(R.id.calbg_alpha_label)
-        bar.progress = decor.calBgAlpha
-        label.text = "달력 칸 배경 진하기 ${decor.calBgAlpha}%"
-        bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+    }
+
+    private fun bgHsv() = floatArrayOf(bgHue.progress.toFloat(), bgSat.progress / 100f, bgVal.progress / 100f)
+
+    private fun syncBgBars(color: Int) {
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(color, hsv)
+        bgHue.progress = hsv[0].toInt()
+        bgSat.progress = (hsv[1] * 100).toInt()
+        bgVal.progress = (hsv[2] * 100).toInt()
+        paintBgBars()
+    }
+
+    private fun paintBgBars() {
+        val d = resources.displayMetrics.density
+        val hsv = bgHsv()
+        fun bar(colors: IntArray): android.graphics.drawable.GradientDrawable {
+            val g = android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT, colors)
+            g.cornerRadius = 14 * d
+            return g
+        }
+        bgHue.background = bar(IntArray(7) { android.graphics.Color.HSVToColor(floatArrayOf(it * 60f % 360f, maxOf(hsv[1], 0.35f), maxOf(hsv[2], 0.6f))) })
+        bgSat.background = bar(intArrayOf(
+            android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], 0f, maxOf(hsv[2], 0.15f))),
+            android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], 1f, maxOf(hsv[2], 0.15f))),
+        ))
+        bgVal.background = bar(intArrayOf(
+            android.graphics.Color.BLACK,
+            android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], hsv[1], 1f)),
+        ))
+        val dot = android.graphics.drawable.GradientDrawable()
+        dot.shape = android.graphics.drawable.GradientDrawable.OVAL
+        dot.setColor(Palette.bgColor(decor))
+        dot.setStroke((1 * d).toInt(), getColor(R.color.text_muted))
+        findViewById<FrameLayout>(R.id.bg_preview).background = dot
+        findViewById<TextView>(R.id.bg_hue_label).text = "색상 ${hsv[0].toInt()}°"
+        findViewById<TextView>(R.id.bg_sat_label).text = "채도 ${bgSat.progress}%"
+        findViewById<TextView>(R.id.bg_val_label).text = "밝기(명도) ${bgVal.progress}%"
+    }
+
+    private fun setupBgPicker() {
+        bgHue = findViewById(R.id.seek_bg_hue)
+        bgSat = findViewById(R.id.seek_bg_sat)
+        bgVal = findViewById(R.id.seek_bg_val)
+        syncBgBars(Palette.bgColor(decor))
+        val listener = object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (!fromUser) return
-                decor = decor.copy(calBgAlpha = progress)
-                label.text = "달력 칸 배경 진하기 ${progress}%"
+                val wasPalette = decor.customBg == 0
+                decor = decor.copy(customBg = android.graphics.Color.HSVToColor(bgHsv()), bgMode = 1)
+                if (wasPalette) fillBgRow()
+                syncBgRadio()
+                paintBgBars()
                 refreshPreview()
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) { save() }
-        })
+        }
+        bgHue.setOnSeekBarChangeListener(listener)
+        bgSat.setOnSeekBarChangeListener(listener)
+        bgVal.setOnSeekBarChangeListener(listener)
     }
 
     // ---------- 추천 테마 ----------
@@ -581,7 +628,7 @@ class DecorActivity : AppCompatActivity() {
             chip.layoutParams = lp
             chip.setOnClickListener {
                 decor = decor.copy(
-                    customAccent = pr.accent, bgMode = 1, bgColor = pr.bgColor, bgAlpha = pr.bgAlpha,
+                    customAccent = pr.accent, bgMode = 1, bgColor = pr.bgColor, bgAlpha = pr.bgAlpha, customBg = 0,
                     textMode = pr.textMode, border = pr.border, titleStyle = pr.titleStyle, weekdayEn = pr.weekdayEn,
                 )
                 Store.saveTheme(this, decor)

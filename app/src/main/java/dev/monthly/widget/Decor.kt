@@ -124,7 +124,7 @@ object Decor {
             c.drawBitmap(photo, m, stickerPaint)
             c.drawColor(Color.argb(theme.dim.coerceIn(0, 90) * 255 / 100, 0, 0, 0))
         } else {
-            val base = if (theme.bgMode == 1) Palette.bg(theme.bgColor) else ctx.getColor(R.color.widget_bg)
+            val base = if (theme.bgMode == 1) Palette.bgColor(theme) else ctx.getColor(R.color.widget_bg)
             c.drawColor(base or 0xFF000000.toInt())
         }
 
