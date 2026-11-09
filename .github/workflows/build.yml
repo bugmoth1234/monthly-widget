@@ -28,6 +28,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: 이번 달 위젯 v${{ github.run_number }}
+          name: 달력 위젯 v${{ github.run_number }}
           files: MonthlyWidget.apk
           make_latest: true

@@ -281,7 +281,7 @@ class MainActivity : AppCompatActivity() {
                 val i = Intent(Intent.ACTION_CREATE_DOCUMENT)
                     .addCategory(Intent.CATEGORY_OPENABLE)
                     .setType("application/zip")
-                    .putExtra(Intent.EXTRA_TITLE, "이번달위젯_백업_${LocalDate.now()}.zip")
+                    .putExtra(Intent.EXTRA_TITLE, "달력위젯_백업_${LocalDate.now()}.zip")
                 @Suppress("DEPRECATION")
                 startActivityForResult(i, REQ_BACKUP)
             }
