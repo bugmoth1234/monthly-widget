@@ -1,0 +1,13 @@
+<resources>
+    <color name="widget_bg">#F2FFFFFF</color>
+    <color name="text_primary">#222222</color>
+    <color name="text_muted">#B5B5B5</color>
+    <color name="text_secondary">#777777</color>
+    <color name="sunday">#E5484D</color>
+    <color name="saturday">#3E7BFA</color>
+    <color name="accent">#5B6CF0</color>
+    <color name="accent_dark">#3F4CC0</color>
+    <color name="dday">#F06292</color>
+    <color name="divider">#22000000</color>
+    <color name="on_accent">#FFFFFF</color>
+</resources>

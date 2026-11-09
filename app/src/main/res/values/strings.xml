@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">이번 달</string>
+    <string name="widget_desc">이번 달 달력과 할 일·디데이를 보여 줍니다</string>
+</resources>
