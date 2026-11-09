@@ -47,7 +47,18 @@ object Fonts {
         val dest = File(dir(ctx), name)
         return try {
             ctx.contentResolver.openInputStream(uri)?.use { input ->
-                FileOutputStream(dest).use { input.copyTo(it) }
+                FileOutputStream(dest).use { out ->
+                    // 글꼴 파일은 30MB까지만
+                    val buf = ByteArray(16 * 1024)
+                    var total = 0L
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        total += n
+                        if (total > 30L * 1024 * 1024) throw IllegalStateException("too large")
+                        out.write(buf, 0, n)
+                    }
+                }
             } ?: return null
             val tf = Typeface.createFromFile(dest)
             if (tf == null || tf == Typeface.DEFAULT) {

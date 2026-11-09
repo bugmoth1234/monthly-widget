@@ -119,10 +119,10 @@ object WidgetRenderer {
     private fun togglePI(ctx: Context, id: Long): PendingIntent =
         PendingIntent.getBroadcast(
             ctx, (id xor (id ushr 32)).toInt(),
-            Intent(ctx, MonthWidgetProvider::class.java)
-                .setAction(MonthWidgetProvider.ACTION_TOGGLE)
+            Intent(ctx, ActionReceiver::class.java)
+                .setAction(ActionReceiver.ACTION_TOGGLE)
                 .setData(android.net.Uri.parse("monthly://toggle/$id"))
-                .putExtra(MonthWidgetProvider.EXTRA_ID, id),
+                .putExtra(ActionReceiver.EXTRA_ID, id),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
@@ -398,15 +398,15 @@ object WidgetRenderer {
         rv.setOnClickPendingIntent(R.id.list, open)
         rv.setOnClickPendingIntent(R.id.title_img, open)
         rv.setOnClickPendingIntent(R.id.body_img, open)
-        rv.setOnClickPendingIntent(R.id.btn_prev, broadcast(ctx, MonthWidgetProvider.ACTION_PREV, 1))
-        rv.setOnClickPendingIntent(R.id.btn_next, broadcast(ctx, MonthWidgetProvider.ACTION_NEXT, 2))
+        rv.setOnClickPendingIntent(R.id.btn_prev, broadcast(ctx, ActionReceiver.ACTION_PREV, 1))
+        rv.setOnClickPendingIntent(R.id.btn_next, broadcast(ctx, ActionReceiver.ACTION_NEXT, 2))
         return rv
     }
 
     private fun broadcast(ctx: Context, action: String, code: Int): PendingIntent =
         PendingIntent.getBroadcast(
             ctx, code,
-            Intent(ctx, MonthWidgetProvider::class.java).setAction(action),
+            Intent(ctx, ActionReceiver::class.java).setAction(action),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
@@ -415,6 +415,6 @@ object WidgetRenderer {
         val am = ctx.getSystemService(AlarmManager::class.java) ?: return
         val at = LocalDate.now().plusDays(1)
             .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() + 60_000L
-        am.set(AlarmManager.RTC, at, broadcast(ctx, MonthWidgetProvider.ACTION_MIDNIGHT, 3))
+        am.set(AlarmManager.RTC, at, broadcast(ctx, ActionReceiver.ACTION_MIDNIGHT, 3))
     }
 }

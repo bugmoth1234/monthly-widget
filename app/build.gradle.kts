@@ -26,6 +26,12 @@ android {
     }
     buildTypes {
         getByName("debug") { signingConfig = signingConfigs.getByName("debug") }
+        // 배포용: 디버그 모드가 꺼져 있어 USB 디버깅으로 앱 데이터를 꺼내 볼 수 없음
+        getByName("release") {
+            isDebuggable = false
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

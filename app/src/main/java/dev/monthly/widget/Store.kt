@@ -205,6 +205,10 @@ object Store {
     }
 
     // ---------- 꾸미기 ----------
+    /** 앱 폴더 안의 파일 이름만 허용 (경로 문자 포함 시 무시) */
+    private fun safeName(n: String): String =
+        if (n.isEmpty() || n.contains('/') || n.contains('\\') || n.contains("..") || n.startsWith(".")) "" else n
+
     fun loadTheme(ctx: Context): Theme {
         val raw = prefs(ctx).getString(KEY_THEME, null) ?: return Theme()
         return try {
@@ -213,10 +217,12 @@ object Store {
             val arr = o.optJSONArray("stickers") ?: JSONArray()
             for (i in 0 until arr.length()) {
                 val s = arr.optJSONObject(i) ?: continue
+                val fileName = safeName(s.optString("file", ""))
+                if (fileName.isEmpty()) continue
                 st.add(
                     Sticker(
                         id = s.optString("id", i.toString()),
-                        file = s.getString("file"),
+                        file = fileName,
                         cx = s.optDouble("cx", 0.5).toFloat(),
                         cy = s.optDouble("cy", 0.5).toFloat(),
                         w = s.optDouble("w", 0.3).toFloat(),
@@ -226,23 +232,23 @@ object Store {
             }
             val monthly = mutableMapOf<String, String>()
             val mo = o.optJSONObject("headerMonthly")
-            if (mo != null) for (k in mo.keys()) monthly[k] = mo.getString(k)
+            if (mo != null) for (k in mo.keys()) safeName(mo.getString(k)).takeIf { it.isNotEmpty() }?.let { monthly[k] = it }
             Theme(
                 accent = o.optInt("accent", 0),
                 bgMode = o.optInt("bgMode", 0),
                 bgColor = o.optInt("bgColor", 0),
-                bgImage = o.optString("bgImage", ""),
+                bgImage = safeName(o.optString("bgImage", "")),
                 bgAlpha = o.optInt("bgAlpha", 95),
                 dim = o.optInt("dim", 25),
                 textMode = o.optInt("textMode", 0),
                 caption = o.optString("caption", ""),
                 stickers = st,
-                headerImage = o.optString("headerImage", ""),
+                headerImage = safeName(o.optString("headerImage", "")),
                 headerMonthly = monthly,
                 headerDim = o.optInt("headerDim", 20),
                 headerLarge = o.optBoolean("headerLarge", false),
-                titleFont = o.optString("titleFont", ""),
-                bodyFont = o.optString("bodyFont", ""),
+                titleFont = safeName(o.optString("titleFont", "")),
+                bodyFont = safeName(o.optString("bodyFont", "")),
                 bodyFontScale = o.optInt("bodyFontScale", 100),
                 customAccent = o.optInt("customAccent", 0),
                 bleed = o.optInt("bleed", 0),
