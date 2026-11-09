@@ -21,6 +21,18 @@ class StickerEditView @JvmOverloads constructor(
     var stickers: MutableList<Sticker> = mutableListOf()
     var selectedId: String? = null
     var onChanged: (() -> Unit)? = null
+    /** 선택이 바뀌거나 크기가 바뀔 때 (슬라이더 동기화용) */
+    var onSelection: ((Sticker?) -> Unit)? = null
+
+    fun selected(): Sticker? = stickers.firstOrNull { it.id == selectedId }
+
+    /** 슬라이더에서 크기 지정 (위젯 너비 대비 비율) */
+    fun setSelectedWidth(w: Float) {
+        val i = selectedIndex()
+        if (i < 0) return
+        stickers[i] = stickers[i].copy(w = w.coerceIn(0.05f, 1.6f))
+        invalidate()
+    }
 
     private val boxPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -95,6 +107,7 @@ class StickerEditView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 val s = hit(e.x, e.y)
                 selectedId = s?.id
+                onSelection?.invoke(s)
                 invalidate()
                 if (s == null) return false // 빈 곳은 화면 스크롤에 양보
                 parent?.requestDisallowInterceptTouchEvent(true)
@@ -111,6 +124,7 @@ class StickerEditView @JvmOverloads constructor(
                     if (startDist > 10f) {
                         val nw = (startW * dist(e) / startDist).coerceIn(0.05f, 1.6f)
                         stickers[i] = s.copy(w = nw, rot = startRot + angle(e) - startAngle)
+                        onSelection?.invoke(stickers[i])
                         moved = true
                         invalidate()
                     }

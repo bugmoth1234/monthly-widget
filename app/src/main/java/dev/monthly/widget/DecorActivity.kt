@@ -74,6 +74,7 @@ class DecorActivity : Activity() {
         findViewById<Button>(R.id.btn_add_sticker).setOnClickListener { pick(REQ_STICKER) }
         findViewById<Button>(R.id.btn_del_sticker).setOnClickListener { deleteSelected() }
         findViewById<Button>(R.id.btn_sticker_front).setOnClickListener { moveSelected(+1) }
+        setupStickerSize()
         findViewById<Button>(R.id.btn_sticker_back).setOnClickListener { moveSelected(-1) }
         findViewById<Button>(R.id.btn_bg_photo).setOnClickListener { pick(REQ_BG) }
         findViewById<Button>(R.id.btn_reset).setOnClickListener { confirmReset() }
@@ -358,9 +359,42 @@ class DecorActivity : Activity() {
         val s = Sticker(UUID.randomUUID().toString(), file, 0.5f, 0.45f, 0.35f, 0f)
         editor.stickers.add(s)
         editor.selectedId = s.id
+        editor.onSelection?.invoke(s)
         decor = decor.copy(stickers = editor.stickers.toList())
         save(refresh = false)
         editor.invalidate()
+    }
+
+    private fun setupStickerSize() {
+        val bar = findViewById<SeekBar>(R.id.seek_sticker_size)
+        val label = findViewById<TextView>(R.id.sticker_size_label)
+        fun show(s: Sticker?) {
+            if (s == null) {
+                label.text = "선택한 스티커 크기 (스티커를 먼저 눌러 주세요)"
+            } else {
+                val pct = (s.w * 100).toInt()
+                label.text = "선택한 스티커 크기: 위젯 너비의 $pct%"
+                bar.progress = (pct - 5).coerceIn(0, bar.max)
+            }
+        }
+        show(null)
+        editor.onSelection = { show(it) }
+        bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                if (editor.selected() == null) return
+                editor.setSelectedWidth((progress + 5) / 100f)
+                label.text = "선택한 스티커 크기: 위젯 너비의 ${progress + 5}%"
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {
+                if (editor.selected() == null) toast("크기를 바꿀 스티커를 미리보기에서 먼저 눌러 주세요")
+            }
+            override fun onStopTrackingTouch(sb: SeekBar?) {
+                if (editor.selected() == null) return
+                decor = decor.copy(stickers = editor.stickers.toList())
+                save(refresh = false)
+            }
+        })
     }
 
     /** 겹치는 순서 바꾸기: 목록 뒤쪽일수록 위에 그려짐. dir +1 = 한 칸 앞으로, -1 = 한 칸 뒤로 */
@@ -393,6 +427,7 @@ class DecorActivity : Activity() {
         }
         editor.stickers.remove(s)
         editor.selectedId = null
+        editor.onSelection?.invoke(null)
         File(Decor.stickerDir(this), s.file).delete()
         decor = decor.copy(stickers = editor.stickers.toList())
         save(refresh = false)

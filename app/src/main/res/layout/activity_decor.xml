@@ -76,6 +76,18 @@
             android:text="↑ 앞으로" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/sticker_size_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="선택한 스티커 크기" />
+    <SeekBar
+        android:id="@+id/seek_sticker_size"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="155" />
+
     <TextView style="@style/SectionLabel" android:text="포인트 색" />
     <HorizontalScrollView
         android:layout_width="match_parent"
