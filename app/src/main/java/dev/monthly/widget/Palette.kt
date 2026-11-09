@@ -8,7 +8,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 object Palette {
-    // 순서를 바꾸면 today_bg_N / pill_N 드로어블도 같이 바꿔야 합니다.
     val colors = intArrayOf(
         0xFF5B6CF0.toInt(), // 0 인디고
         0xFFF06292.toInt(), // 1 핑크
@@ -24,17 +23,7 @@ object Palette {
         0xFF546E7A.toInt(), // 11 회청
     )
 
-    val todayBg = intArrayOf(
-        R.drawable.today_bg_0, R.drawable.today_bg_1, R.drawable.today_bg_2, R.drawable.today_bg_3,
-        R.drawable.today_bg_4, R.drawable.today_bg_5, R.drawable.today_bg_6, R.drawable.today_bg_7,
-        R.drawable.today_bg_8, R.drawable.today_bg_9, R.drawable.today_bg_10, R.drawable.today_bg_11,
-    )
 
-    val pill = intArrayOf(
-        R.drawable.pill_0, R.drawable.pill_1, R.drawable.pill_2, R.drawable.pill_3,
-        R.drawable.pill_4, R.drawable.pill_5, R.drawable.pill_6, R.drawable.pill_7,
-        R.drawable.pill_8, R.drawable.pill_9, R.drawable.pill_10, R.drawable.pill_11,
-    )
 
     val bgColors = intArrayOf(
         0xFFFFFFFF.toInt(), // 흰색
@@ -55,11 +44,15 @@ object Palette {
     fun color(i: Int) = colors[idx(i)]
     fun bg(i: Int) = bgColors[i.coerceIn(0, bgColors.size - 1)]
 
-    /** 일정의 실제 색 번호: 지정한 색 > 디데이는 핑크 > 할 일은 포인트 색 */
+    /** 포인트 색: 직접 고른 색 > 팔레트 색 */
+    fun accentColor(theme: Theme): Int =
+        if (theme.customAccent != 0) theme.customAccent else color(theme.accent)
+
+    /** 일정의 실제 색: 지정한 색 > 디데이는 핑크 > 할 일은 포인트 색 */
     fun itemColor(item: Item, theme: Theme): Int = when {
-        item.color >= 0 -> idx(item.color)
-        item.type == ItemType.DDAY -> 1
-        else -> idx(theme.accent)
+        item.color >= 0 -> color(item.color)
+        item.type == ItemType.DDAY -> colors[1]
+        else -> accentColor(theme)
     }
 }
 

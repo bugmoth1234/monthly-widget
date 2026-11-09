@@ -44,6 +44,8 @@ data class Theme(
     val titleFont: String = "",   // 글꼴 파일 이름 (비어 있으면 기본 글꼴)
     val bodyFont: String = "",
     val bodyFontScale: Int = 100, // 글꼴 파일을 쓸 때 글자 크기 %
+    val customAccent: Int = 0,    // 직접 고른 포인트 색 (0이면 팔레트 색 사용)
+    val bleed: Int = 0,           // 카드 바깥 투명 여백 dp (스티커가 삐져나올 공간)
 )
 
 object Store {
@@ -139,6 +141,8 @@ object Store {
                 titleFont = o.optString("titleFont", ""),
                 bodyFont = o.optString("bodyFont", ""),
                 bodyFontScale = o.optInt("bodyFontScale", 100),
+                customAccent = o.optInt("customAccent", 0),
+                bleed = o.optInt("bleed", 0),
             )
         } catch (e: Exception) {
             Theme()
@@ -162,6 +166,7 @@ object Store {
             .put("headerImage", t.headerImage).put("headerMonthly", JSONObject(t.headerMonthly as Map<*, *>))
             .put("headerDim", t.headerDim).put("headerLarge", t.headerLarge)
             .put("titleFont", t.titleFont).put("bodyFont", t.bodyFont).put("bodyFontScale", t.bodyFontScale)
+            .put("customAccent", t.customAccent).put("bleed", t.bleed)
         prefs(ctx).edit().putString(KEY_THEME, o.toString()).apply()
     }
 

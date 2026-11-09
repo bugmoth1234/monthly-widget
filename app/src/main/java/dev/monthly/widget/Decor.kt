@@ -109,7 +109,10 @@ object Decor {
         }
     }
 
-    fun renderBackground(ctx: Context, theme: Theme, w: Int, h: Int, radius: Float): Bitmap {
+    /** u = 1dp의 픽셀 수. bleed만큼 안쪽에 카드를 그리고 바깥은 투명하게 둡니다. */
+    fun renderBackground(ctx: Context, theme: Theme, w: Int, h: Int, u: Float): Bitmap {
+        val radius = 22f * u
+        val inset = theme.bleed.coerceIn(0, 60) * u
         val fill = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(fill)
         val photo = if (theme.bgMode == 2 && theme.bgImage.isNotEmpty()) load(File(bgDir(ctx), theme.bgImage)) else null
@@ -129,7 +132,7 @@ object Decor {
         val p = Paint(Paint.ANTI_ALIAS_FLAG)
         p.shader = BitmapShader(fill, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
         p.alpha = theme.bgAlpha.coerceIn(0, 100) * 255 / 100
-        Canvas(out).drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), radius, radius, p)
+        Canvas(out).drawRoundRect(RectF(inset, inset, w - inset, h - inset), radius, radius, p)
         fill.recycle()
         return out
     }

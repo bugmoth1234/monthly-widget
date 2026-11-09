@@ -88,6 +88,24 @@
         android:layout_height="wrap_content"
         android:max="155" />
 
+    <TextView
+        android:id="@+id/bleed_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="카드 바깥 여백" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="여백을 주면 카드가 작아지고, 그 바깥으로 삐져나온 스티커는 바탕화면 위에 보여요."
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp" />
+    <SeekBar
+        android:id="@+id/seek_bleed"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="40" />
+
     <TextView style="@style/SectionLabel" android:text="포인트 색" />
     <HorizontalScrollView
         android:layout_width="match_parent"
@@ -99,6 +117,29 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal" />
     </HorizontalScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="직접 고르기 (아래 막대를 움직이면 적용돼요)" />
+        <FrameLayout
+            android:id="@+id/accent_preview"
+            android:layout_width="36dp"
+            android:layout_height="36dp" />
+    </LinearLayout>
+    <TextView style="@style/SliderLabel" android:id="@+id/hue_label" android:text="색상" />
+    <SeekBar android:id="@+id/seek_hue" style="@style/ColorBar" android:max="359" />
+    <TextView style="@style/SliderLabel" android:id="@+id/sat_label" android:text="채도" />
+    <SeekBar android:id="@+id/seek_sat" style="@style/ColorBar" android:max="100" />
+    <TextView style="@style/SliderLabel" android:id="@+id/val_label" android:text="밝기(명도)" />
+    <SeekBar android:id="@+id/seek_val" style="@style/ColorBar" android:max="100" />
 
     <TextView style="@style/SectionLabel" android:text="글꼴" />
     <TextView

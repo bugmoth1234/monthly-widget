@@ -75,6 +75,7 @@ class DecorActivity : Activity() {
         findViewById<Button>(R.id.btn_del_sticker).setOnClickListener { deleteSelected() }
         findViewById<Button>(R.id.btn_sticker_front).setOnClickListener { moveSelected(+1) }
         setupStickerSize()
+        setupBleed()
         findViewById<Button>(R.id.btn_sticker_back).setOnClickListener { moveSelected(-1) }
         findViewById<Button>(R.id.btn_bg_photo).setOnClickListener { pick(REQ_BG) }
         findViewById<Button>(R.id.btn_reset).setOnClickListener { confirmReset() }
@@ -117,10 +118,7 @@ class DecorActivity : Activity() {
             save()
         }
 
-        Swatches.fill(findViewById<LinearLayout>(R.id.accent_row), Palette.colors, decor.accent, false) {
-            decor = decor.copy(accent = it)
-            save()
-        }
+        setupAccentPicker()
         Swatches.fill(findViewById<LinearLayout>(R.id.bgcolor_row), Palette.bgColors, decor.bgColor, false) {
             decor = decor.copy(bgColor = it, bgMode = 1)
             syncBgRadio()
@@ -220,7 +218,7 @@ class DecorActivity : Activity() {
             val rv = WidgetRenderer.buildContent(this, items, decor)
             rv.setImageViewBitmap(
                 R.id.bg_layer,
-                Decor.renderBackground(this, decor, w, h, 22f * resources.displayMetrics.density),
+                Decor.renderBackground(this, decor, w, h, resources.displayMetrics.density),
             )
             WidgetRenderer.applyHeader(this, rv, decor, w, 1f)
             WidgetRenderer.applyFonts(this, rv, decor, items, w, h, 1f)
@@ -363,6 +361,99 @@ class DecorActivity : Activity() {
         decor = decor.copy(stickers = editor.stickers.toList())
         save(refresh = false)
         editor.invalidate()
+    }
+
+    // ---------- 포인트 색: 팔레트 + 색상/채도/밝기 ----------
+    private lateinit var hueBar: SeekBar
+    private lateinit var satBar: SeekBar
+    private lateinit var valBar: SeekBar
+
+    private fun fillAccentRow() {
+        val selected = if (decor.customAccent != 0) -2 else decor.accent // -2 = 팔레트에서 선택 안 됨
+        Swatches.fill(findViewById<LinearLayout>(R.id.accent_row), Palette.colors, selected, false) {
+            decor = decor.copy(accent = it, customAccent = 0)
+            syncColorBars(Palette.colors[it])
+            save()
+        }
+    }
+
+    private fun currentHsv() = floatArrayOf(hueBar.progress.toFloat(), satBar.progress / 100f, valBar.progress / 100f)
+
+    private fun syncColorBars(color: Int) {
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(color, hsv)
+        hueBar.progress = hsv[0].toInt()
+        satBar.progress = (hsv[1] * 100).toInt()
+        valBar.progress = (hsv[2] * 100).toInt()
+        paintColorBars()
+    }
+
+    private fun paintColorBars() {
+        val d = resources.displayMetrics.density
+        val hsv = currentHsv()
+        fun bar(colors: IntArray): android.graphics.drawable.GradientDrawable {
+            val g = android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT, colors)
+            g.cornerRadius = 14 * d
+            return g
+        }
+        hueBar.background = bar(IntArray(7) { android.graphics.Color.HSVToColor(floatArrayOf(it * 60f % 360f, 1f, 1f)) })
+        satBar.background = bar(intArrayOf(
+            android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], 0f, maxOf(hsv[2], 0.15f))),
+            android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], 1f, maxOf(hsv[2], 0.15f))),
+        ))
+        valBar.background = bar(intArrayOf(
+            android.graphics.Color.BLACK,
+            android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], hsv[1], 1f)),
+        ))
+        val dot = android.graphics.drawable.GradientDrawable()
+        dot.shape = android.graphics.drawable.GradientDrawable.OVAL
+        dot.setColor(Palette.accentColor(decor))
+        dot.setStroke((1 * d).toInt(), getColor(R.color.text_muted))
+        findViewById<FrameLayout>(R.id.accent_preview).background = dot
+        findViewById<TextView>(R.id.hue_label).text = "색상 ${hsv[0].toInt()}°"
+        findViewById<TextView>(R.id.sat_label).text = "채도 ${satBar.progress}%"
+        findViewById<TextView>(R.id.val_label).text = "밝기(명도) ${valBar.progress}%"
+    }
+
+    private fun setupAccentPicker() {
+        hueBar = findViewById(R.id.seek_hue)
+        satBar = findViewById(R.id.seek_sat)
+        valBar = findViewById(R.id.seek_val)
+        fillAccentRow()
+        syncColorBars(Palette.accentColor(decor))
+        val listener = object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                val wasPalette = decor.customAccent == 0
+                decor = decor.copy(customAccent = android.graphics.Color.HSVToColor(currentHsv()))
+                if (wasPalette) fillAccentRow()
+                paintColorBars()
+                refreshPreview()
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) { save() }
+        }
+        hueBar.setOnSeekBarChangeListener(listener)
+        satBar.setOnSeekBarChangeListener(listener)
+        valBar.setOnSeekBarChangeListener(listener)
+    }
+
+    // ---------- 카드 바깥 여백 ----------
+    private fun setupBleed() {
+        val bar = findViewById<SeekBar>(R.id.seek_bleed)
+        val label = findViewById<TextView>(R.id.bleed_label)
+        bar.progress = decor.bleed
+        label.text = "카드 바깥 여백: ${decor.bleed}dp"
+        bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                decor = decor.copy(bleed = progress)
+                label.text = "카드 바깥 여백: ${progress}dp"
+                refreshPreview()
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) { save() }
+        })
     }
 
     private fun setupStickerSize() {

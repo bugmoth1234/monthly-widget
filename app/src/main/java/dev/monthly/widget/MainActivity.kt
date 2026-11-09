@@ -200,12 +200,15 @@ class MainActivity : Activity() {
                 check.visibility = View.GONE
                 badge.visibility = View.VISIBLE
                 badge.text = Fmt.dday(entry.date, LocalDate.now())
-                badge.setBackgroundResource(Palette.pill[ci])
+                val pill = android.graphics.drawable.GradientDrawable()
+                pill.cornerRadius = 8 * resources.displayMetrics.density
+                pill.setColor(ci)
+                badge.background = pill
                 title.alpha = 1f
             } else {
                 badge.visibility = View.GONE
                 check.visibility = View.VISIBLE
-                check.buttonTintList = ColorStateList.valueOf(Palette.color(ci))
+                check.buttonTintList = ColorStateList.valueOf(ci)
                 check.isChecked = item.done
                 title.alpha = if (item.done) 0.4f else 1f
                 check.setOnCheckedChangeListener { _, checked -> replace(item.copy(done = checked)) }

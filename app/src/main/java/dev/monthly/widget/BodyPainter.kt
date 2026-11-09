@@ -75,7 +75,7 @@ object BodyPainter {
                 val cy = y + 14 * u
                 val color: Int
                 if (date == today) {
-                    fill.color = Palette.color(theme.accent)
+                    fill.color = Palette.accentColor(theme)
                     c.drawCircle(cx, cy, 12 * u, fill)
                     color = Color.WHITE
                 } else {
@@ -93,7 +93,7 @@ object BodyPainter {
                     if (mark.item.emoji.isNotBlank()) {
                         centerText(mark.item.emoji.trim(), cx, dotY, 9 * u, ink.primary)
                     } else {
-                        fill.color = Palette.color(Palette.itemColor(mark.item, theme))
+                        fill.color = Palette.itemColor(mark.item, theme)
                         c.drawCircle(cx, dotY, 2.5f * u, fill)
                     }
                 }
@@ -130,11 +130,11 @@ object BodyPainter {
                 val text = Fmt.dday(e.date, today)
                 p.textSize = 11 * u * k
                 val pw = maxOf(badgeW, p.measureText(text) + 8 * u)
-                fill.color = Palette.color(ci)
+                fill.color = ci
                 c.drawRoundRect(RectF(0f, mid - 8 * u * k, pw, mid + 8 * u * k), 8 * u, 8 * u, fill)
                 centerText(text, pw / 2f, mid, 11 * u * k, Color.WHITE)
             } else {
-                centerText(if (item.done) "✓" else "○", badgeW / 2f, mid, 11 * u * k, if (item.done) ink.muted else Palette.color(ci))
+                centerText(if (item.done) "✓" else "○", badgeW / 2f, mid, 11 * u * k, if (item.done) ink.muted else ci)
             }
 
             p.textAlign = Paint.Align.LEFT

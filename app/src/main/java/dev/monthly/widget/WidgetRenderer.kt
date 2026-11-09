@@ -64,7 +64,7 @@ object WidgetRenderer {
         val scale = minOf(1f, maxSide / maxOf(w, h))
         val wp = (w * scale).toInt().coerceAtLeast(1)
         val hp = (h * scale).toInt().coerceAtLeast(1)
-        rv.setImageViewBitmap(R.id.bg_layer, Decor.renderBackground(ctx, theme, wp, hp, 22f * d * scale))
+        rv.setImageViewBitmap(R.id.bg_layer, Decor.renderBackground(ctx, theme, wp, hp, d * scale))
         applyHeader(ctx, rv, theme, wp, scale)
         applyFonts(ctx, rv, theme, items, wp, hp, scale)
         val st = Decor.renderStickers(ctx, theme.stickers, wp, hp)
@@ -83,7 +83,7 @@ object WidgetRenderer {
     fun applyHeader(ctx: Context, rv: RemoteViews, theme: Theme, widthPx: Int, scale: Float) {
         val d = ctx.resources.displayMetrics.density
         val hDp = if (theme.headerLarge) HEADER_LARGE_DP else HEADER_NORMAL_DP
-        val w = (widthPx - 24f * d * scale).toInt()
+        val w = (widthPx - (24f + 2 * theme.bleed) * d * scale).toInt()
         val h = (hDp * d * scale).toInt()
         val bmp = Decor.renderHeader(ctx, theme, displayMonth(ctx), w, h, 12f * d * scale)
         if (bmp != null) rv.setImageViewBitmap(R.id.header_img, bmp)
@@ -101,7 +101,7 @@ object WidgetRenderer {
 
         val titleTf = Fonts.get(ctx, theme.titleFont)
         if (titleTf != null) {
-            val tw = (widthPx - 96 * u).toInt()
+            val tw = (widthPx - (96 + 2 * theme.bleed) * u).toInt()
             val th = (30 * u).toInt()
             if (tw > 0 && th > 0) {
                 val color = if (hasHeader) Color.WHITE else ink.primary
@@ -114,8 +114,8 @@ object WidgetRenderer {
         val bodyTf = Fonts.get(ctx, theme.bodyFont)
         if (bodyTf != null) {
             val headerDp = if (hasHeader) (if (theme.headerLarge) HEADER_LARGE_DP else HEADER_NORMAL_DP) else 30
-            val bw = (widthPx - 24 * u).toInt()
-            val bh = (heightPx - (24 + headerDp) * u).toInt()
+            val bw = (widthPx - (24 + 2 * theme.bleed) * u).toInt()
+            val bh = (heightPx - (24 + 2 * theme.bleed + headerDp) * u).toInt()
             if (bw > 0 && bh > 0) {
                 val bmp = BodyPainter.draw(ctx, theme, items, ym, LocalDate.now(), ink, bodyTf, bw, bh, u)
                 rv.setImageViewBitmap(R.id.body_img, bmp)
@@ -133,10 +133,12 @@ object WidgetRenderer {
         val today = LocalDate.now()
         val ym = displayMonth(ctx)
         val ink = Inks.of(ctx, theme)
-        val accent = Palette.idx(theme.accent)
+        val accent = Palette.accentColor(theme)
         val d = ctx.resources.displayMetrics.density
 
         val rv = RemoteViews(pkg, R.layout.widget_month)
+        val pad = ((12 + theme.bleed.coerceIn(0, 60)) * d).toInt()
+        rv.setViewPadding(R.id.content, pad, pad, pad, pad)
         rv.setTextViewText(R.id.title, Fmt.month(ym))
 
         // 제목 자리: 이미지가 있으면 흰 글씨 + 높이 조절
@@ -182,7 +184,8 @@ object WidgetRenderer {
                 val cell = RemoteViews(pkg, R.layout.widget_cell)
                 cell.setTextViewText(R.id.cell_num, date.dayOfMonth.toString())
                 if (date == today) {
-                    cell.setInt(R.id.cell_num, "setBackgroundResource", Palette.todayBg[accent])
+                    cell.setViewVisibility(R.id.today_circle, View.VISIBLE)
+                    cell.setInt(R.id.today_circle, "setColorFilter", accent)
                     cell.setTextColor(R.id.cell_num, Color.WHITE)
                 } else {
                     cell.setTextColor(
@@ -203,7 +206,7 @@ object WidgetRenderer {
                     cell.setTextColor(R.id.cell_dot, ink.primary)
                 } else {
                     cell.setTextViewText(R.id.cell_dot, "●")
-                    cell.setTextColor(R.id.cell_dot, Palette.color(Palette.itemColor(mark.item, theme)))
+                    cell.setTextColor(R.id.cell_dot, Palette.itemColor(mark.item, theme))
                 }
                 row.addView(R.id.row, cell)
             }
@@ -227,10 +230,11 @@ object WidgetRenderer {
                 if (item.type == ItemType.DDAY) {
                     row.setTextViewText(R.id.item_badge, Fmt.dday(e.date, today))
                     row.setTextColor(R.id.item_badge, Color.WHITE)
-                    row.setInt(R.id.item_badge, "setBackgroundResource", Palette.pill[ci])
+                    row.setViewVisibility(R.id.item_pill, View.VISIBLE)
+                    row.setInt(R.id.item_pill, "setColorFilter", ci)
                 } else {
                     row.setTextViewText(R.id.item_badge, if (item.done) "✓" else "○")
-                    row.setTextColor(R.id.item_badge, if (item.done) ink.muted else Palette.color(ci))
+                    row.setTextColor(R.id.item_badge, if (item.done) ink.muted else ci)
                 }
                 row.setTextViewText(R.id.item_date, Fmt.shortDate(e.date))
                 row.setTextViewText(R.id.item_title, Fmt.titleWithEmoji(item))
