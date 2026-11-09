@@ -94,26 +94,45 @@
             android:scaleType="fitCenter"
             android:visibility="gone" />
 
-        <LinearLayout
-            android:id="@+id/weekday_row"
+        <FrameLayout
+            android:id="@+id/cal_panel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:orientation="horizontal">
-            <TextView android:id="@+id/wd0" style="@style/WeekdayLabel" android:text="일" />
-            <TextView android:id="@+id/wd1" style="@style/WeekdayLabel" android:text="월" />
-            <TextView android:id="@+id/wd2" style="@style/WeekdayLabel" android:text="화" />
-            <TextView android:id="@+id/wd3" style="@style/WeekdayLabel" android:text="수" />
-            <TextView android:id="@+id/wd4" style="@style/WeekdayLabel" android:text="목" />
-            <TextView android:id="@+id/wd5" style="@style/WeekdayLabel" android:text="금" />
-            <TextView android:id="@+id/wd6" style="@style/WeekdayLabel" android:text="토" />
-        </LinearLayout>
+            android:layout_marginTop="4dp">
+            <ImageView
+                android:id="@+id/cal_bg"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitXY"
+                android:src="@drawable/card_white"
+                android:visibility="gone" />
+            <LinearLayout
+                android:id="@+id/cal_inner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <LinearLayout
+                    android:id="@+id/weekday_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="7dp"
+                    android:orientation="horizontal">
+                    <TextView android:id="@+id/wd0" style="@style/WeekdayLabel" android:text="일" />
+                    <TextView android:id="@+id/wd1" style="@style/WeekdayLabel" android:text="월" />
+                    <TextView android:id="@+id/wd2" style="@style/WeekdayLabel" android:text="화" />
+                    <TextView android:id="@+id/wd3" style="@style/WeekdayLabel" android:text="수" />
+                    <TextView android:id="@+id/wd4" style="@style/WeekdayLabel" android:text="목" />
+                    <TextView android:id="@+id/wd5" style="@style/WeekdayLabel" android:text="금" />
+                    <TextView android:id="@+id/wd6" style="@style/WeekdayLabel" android:text="토" />
+                </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/grid"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
+                <LinearLayout
+                    android:id="@+id/grid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </FrameLayout>
 
         <FrameLayout
             android:id="@+id/divider"

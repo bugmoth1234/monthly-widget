@@ -172,7 +172,7 @@ object WidgetRenderer {
         val bp = BodyPainter(theme, ink, tf, bw, u)
 
         rv.setImageViewBitmap(R.id.body_img, bp.calendar(items, ym, today))
-        for (id in intArrayOf(R.id.caption, R.id.weekday_row, R.id.grid)) rv.setViewVisibility(id, View.GONE)
+        for (id in intArrayOf(R.id.caption, R.id.weekday_row, R.id.grid, R.id.cal_bg)) rv.setViewVisibility(id, View.GONE)
         rv.setViewVisibility(R.id.body_img, View.VISIBLE)
 
         rv.removeAllViews(R.id.list)
@@ -224,7 +224,7 @@ object WidgetRenderer {
         val hPad = if (hasHeader) (4 * d).toInt() else 0
         rv.setViewPadding(R.id.header_row, hPad, vPad, hPad, vPad)
         rv.setViewVisibility(R.id.header_img, if (hasHeader) View.VISIBLE else View.GONE)
-        rv.setTextViewText(R.id.title, Fmt.titleStyled(ym, theme.titleStyle, if (hasHeader) Color.WHITE else accent))
+        rv.setTextViewText(R.id.title, Fmt.titleStyled(ym, theme.titleStyle, if (hasHeader) Color.WHITE else Palette.readable(accent, ink)))
         rv.setTextColor(R.id.title, if (hasHeader) Color.WHITE else ink.primary)
         rv.setTextColor(R.id.btn_prev, if (hasHeader) Color.WHITE else ink.secondary)
         rv.setTextColor(R.id.btn_next, if (hasHeader) Color.WHITE else ink.secondary)
@@ -242,6 +242,15 @@ object WidgetRenderer {
             rv.setTextColor(WEEKDAY_IDS[i], if (i == 0) ink.sun else if (i == 6) ink.sat else ink.secondary)
         }
         rv.setInt(R.id.divider, "setBackgroundColor", ink.divider)
+
+        // 달력 칸 뒤 판
+        if (theme.calBgColor != 0) {
+            rv.setViewVisibility(R.id.cal_bg, View.VISIBLE)
+            rv.setInt(R.id.cal_bg, "setColorFilter", theme.calBgColor)
+            rv.setInt(R.id.cal_bg, "setImageAlpha", theme.calBgAlpha.coerceIn(0, 100) * 255 / 100)
+            val cp = (6 * d).toInt()
+            rv.setViewPadding(R.id.cal_inner, cp / 2, cp, cp / 2, cp / 2)
+        }
 
         // ---------- 달력 ----------
         val marks = HashMap<LocalDate, Entry>()
@@ -266,7 +275,7 @@ object WidgetRenderer {
                 if (date == today) {
                     cell.setViewVisibility(R.id.today_circle, View.VISIBLE)
                     cell.setInt(R.id.today_circle, "setColorFilter", accent)
-                    cell.setTextColor(R.id.cell_num, Color.WHITE)
+                    cell.setTextColor(R.id.cell_num, Palette.onColor(accent, theme))
                 } else {
                     cell.setTextColor(
                         R.id.cell_num,
@@ -310,7 +319,7 @@ object WidgetRenderer {
             row.setTextViewText(R.id.pj_pct, "$pct%")
             row.setTextColor(R.id.pj_pct, ink.secondary)
             row.setTextViewText(R.id.pj_dday, Fmt.dday(p.deadline, today))
-            row.setTextColor(R.id.pj_dday, if (left in 0..7) ink.sun else col)
+            row.setTextColor(R.id.pj_dday, if (left in 0..7) ink.sun else Palette.readable(col, ink))
             row.setOnClickPendingIntent(R.id.pj_root, projectPI(ctx, p))
             rv.addView(R.id.list, row)
         }
@@ -320,13 +329,13 @@ object WidgetRenderer {
             card.setInt(R.id.hl_bg, "setColorFilter", c)
             card.setInt(R.id.hl_bg, "setImageAlpha", 46)
             card.setTextViewText(R.id.hl_icon, hl.item.emoji.trim().ifEmpty { "★" })
-            card.setTextColor(R.id.hl_icon, c)
+            card.setTextColor(R.id.hl_icon, Palette.readable(c, ink))
             card.setTextViewText(R.id.hl_title, hl.item.title)
             card.setTextColor(R.id.hl_title, ink.primary)
             card.setTextViewText(R.id.hl_sub, Fmt.monthDay(hl.date) + (if (hl.item.yearly) " · 매년" else ""))
             card.setTextColor(R.id.hl_sub, ink.secondary)
             card.setTextViewText(R.id.hl_dday, Fmt.dday(hl.date, today))
-            card.setTextColor(R.id.hl_dday, c)
+            card.setTextColor(R.id.hl_dday, Palette.readable(c, ink))
             rv.addView(R.id.list, card)
         }
         if (visible.isEmpty() && plan.highlight == null && plan.projects.isEmpty()) {
@@ -342,7 +351,7 @@ object WidgetRenderer {
                 val faded = item.type == ItemType.TODO && item.done
                 if (item.type == ItemType.DDAY) {
                     row.setTextViewText(R.id.item_badge, Fmt.dday(e.date, today))
-                    row.setTextColor(R.id.item_badge, Color.WHITE)
+                    row.setTextColor(R.id.item_badge, Palette.onColor(ci, theme))
                     row.setViewVisibility(R.id.item_pill, View.VISIBLE)
                     row.setInt(R.id.item_pill, "setColorFilter", ci)
                 } else {

@@ -32,7 +32,7 @@
             android:layout_height="match_parent"
             android:gravity="center"
             android:padding="32dp"
-            android:text="아직 프로젝트가 없어요.\n회지나 커뮤 준비를 프로젝트로 만들어 보세요."
+            android:text="아직 프로젝트가 없어요.\n준비 중인 일정을 프로젝트로 만들어 보세요."
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="?attr/colorOnSurfaceVariant" />
         <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton

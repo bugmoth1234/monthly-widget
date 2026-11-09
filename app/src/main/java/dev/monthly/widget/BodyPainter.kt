@@ -73,7 +73,9 @@ class BodyPainter(
         val weeks = (lead + ym.lengthOfMonth() + 6) / 7
         val cellH = 37 * u
         val captionH = if (theme.caption.isNotBlank()) 18 * u else 0f
-        val bmp = canvas(captionH + 20 * u + weeks * cellH)
+        val panel = theme.calBgColor != 0
+        val pad = if (panel) 6 * u else 0f
+        val bmp = canvas(captionH + 27 * u + weeks * cellH + pad * 1.5f)
         val colW = w / 7f
         var y = 0f
 
@@ -83,12 +85,17 @@ class BodyPainter(
         }
 
         y += 4 * u
+        if (panel) {
+            fill.color = (theme.calBgColor and 0x00FFFFFF) or ((theme.calBgAlpha.coerceIn(0, 100) * 255 / 100) shl 24)
+            c.drawRoundRect(RectF(0f, y, w.toFloat(), y + 23 * u + weeks * cellH + pad * 1.5f), 12 * u, 12 * u, fill)
+            y += pad
+        }
         val labels = Fmt.weekLabels(theme)
         for (i in 0 until 7) {
             val color = if (i == 0) ink.sun else if (i == 6) ink.sat else ink.secondary
             text(labels[i], (i + 0.5f) * colW, y + 8 * u, (if (theme.weekdayEn) 9.5f else 11f) * u * k, color, Paint.Align.CENTER)
         }
-        y += 16 * u
+        y += 23 * u // 요일 아래 간격을 넉넉하게
 
         val marks = HashMap<LocalDate, Entry>()
         items.mapNotNull { item -> Store.occurrenceIn(item, ym)?.let { Entry(item, it) } }
@@ -105,7 +112,7 @@ class BodyPainter(
                 val color = if (date == today) {
                     fill.color = Palette.accentColor(theme)
                     c.drawCircle(cx, cy, 12 * u, fill)
-                    Color.WHITE
+                    Palette.onColor(Palette.accentColor(theme), theme)
                 } else when {
                     !inMonth -> ink.muted
                     d == 0 -> ink.sun
@@ -137,7 +144,7 @@ class BodyPainter(
         val left = ChronoUnit.DAYS.between(today, pj.deadline)
         text(pj.emoji.trim().ifEmpty { "📁" }, 9 * u, mid, 14 * u * k, ink.primary, Paint.Align.CENTER)
         val dd = Fmt.dday(pj.deadline, today)
-        text(dd, w.toFloat(), mid, 12 * u * k, if (left in 0..7) ink.sun else col, Paint.Align.RIGHT, bold = true)
+        text(dd, w.toFloat(), mid, 12 * u * k, if (left in 0..7) ink.sun else Palette.readable(col, ink), Paint.Align.RIGHT, bold = true)
         val ddW = maxOf(measure(dd, 12 * u * k, true), 40 * u)
         val pctX = w - ddW - 6 * u
         text("$pct%", pctX, mid, 11 * u * k, ink.secondary, Paint.Align.RIGHT)
@@ -161,9 +168,9 @@ class BodyPainter(
         fill.color = (col and 0x00FFFFFF) or (46 shl 24)
         c.drawRoundRect(RectF(0f, 0f, w.toFloat(), cardH), 12 * u, 12 * u, fill)
         val mid = cardH / 2f
-        text(hl.item.emoji.trim().ifEmpty { "★" }, 22 * u, mid, 20 * u * k, col, Paint.Align.CENTER)
+        text(hl.item.emoji.trim().ifEmpty { "★" }, 22 * u, mid, 20 * u * k, Palette.readable(col, ink), Paint.Align.CENTER)
         val dd = Fmt.dday(hl.date, today)
-        text(dd, w - 10 * u, mid, 20 * u * k, col, Paint.Align.RIGHT, bold = true)
+        text(dd, w - 10 * u, mid, 20 * u * k, Palette.readable(col, ink), Paint.Align.RIGHT, bold = true)
         val ddW = measure(dd, 20 * u * k, true)
         val tx = 44 * u
         val avail = w - tx - ddW - 18 * u
@@ -186,7 +193,7 @@ class BodyPainter(
             val pw = maxOf(badgeW, measure(t, 11 * u * k) + 8 * u)
             fill.color = ci
             c.drawRoundRect(RectF(0f, mid - 8 * u * k, pw, mid + 8 * u * k), 8 * u, 8 * u, fill)
-            text(t, pw / 2f, mid, 11 * u * k, Color.WHITE, Paint.Align.CENTER)
+            text(t, pw / 2f, mid, 11 * u * k, Palette.onColor(ci, theme), Paint.Align.CENTER)
         } else {
             text(if (item.done) "✓" else "○", badgeW / 2f, mid, 12 * u * k, if (item.done) ink.muted else ci, Paint.Align.CENTER)
         }

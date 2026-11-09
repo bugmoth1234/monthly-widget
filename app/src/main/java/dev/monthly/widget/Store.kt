@@ -66,6 +66,9 @@ data class Theme(
     val border: Int = 0,          // 0 없음, 1 선, 2 스티치(점선)
     val highlight: Boolean = true, // 가장 가까운 디데이를 크게
     val showProjects: Boolean = true, // 위젯에 프로젝트 카드 (마감 가까운 2개)
+    val calBgColor: Int = 0,      // 달력 칸 뒤 판 색 (0 = 없음)
+    val calBgAlpha: Int = 70,
+    val onAccentMode: Int = 0,    // 포인트 색 위 글자: 0 자동, 1 흰색, 2 검정
 )
 
 object Store {
@@ -249,6 +252,9 @@ object Store {
                 border = o.optInt("border", 0),
                 highlight = o.optBoolean("highlight", true),
                 showProjects = o.optBoolean("showProjects", true),
+                calBgColor = o.optInt("calBgColor", 0),
+                calBgAlpha = o.optInt("calBgAlpha", 70),
+                onAccentMode = o.optInt("onAccentMode", 0),
             )
         } catch (e: Exception) {
             Theme()
@@ -276,6 +282,7 @@ object Store {
             .put("titleStyle", t.titleStyle).put("weekdayEn", t.weekdayEn)
             .put("border", t.border).put("highlight", t.highlight)
             .put("showProjects", t.showProjects)
+            .put("calBgColor", t.calBgColor).put("calBgAlpha", t.calBgAlpha).put("onAccentMode", t.onAccentMode)
         prefs(ctx).edit().putString(KEY_THEME, o.toString()).apply()
     }
 

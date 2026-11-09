@@ -44,6 +44,23 @@ object Palette {
     fun color(i: Int) = colors[idx(i)]
     fun bg(i: Int) = bgColors[i.coerceIn(0, bgColors.size - 1)]
 
+    /** 달력 칸 배경으로 고를 수 있는 색: 배경 색 + 포인트 팔레트 */
+    val calBgChoices: IntArray get() = bgColors + colors
+
+    /** 색 칸 위에 올리는 글자색 (오늘 동그라미, 디데이 배지) */
+    fun onColor(bg: Int, theme: Theme): Int = when (theme.onAccentMode) {
+        1 -> Color.WHITE
+        2 -> 0xFF222222.toInt()
+        else -> if (Color.luminance(bg) > 0.6f) 0xFF222222.toInt() else Color.WHITE
+    }
+
+    /** 바탕 위에 색 글씨로 쓸 때, 너무 연해서 안 보이면 기본 글자색으로 */
+    fun readable(color: Int, ink: Ink): Int {
+        val bright = Color.luminance(color) > 0.8f
+        val inkDark = Color.luminance(ink.primary) < 0.5f
+        return if (bright && inkDark) ink.primary else color
+    }
+
     /** 포인트 색: 직접 고른 색 > 팔레트 색 */
     fun accentColor(theme: Theme): Int =
         if (theme.customAccent != 0) theme.customAccent else color(theme.accent)
@@ -85,7 +102,10 @@ object Inks {
 
 /** 색 고르기 동그라미 줄. index -1은 "기본". */
 object Swatches {
-    fun fill(row: LinearLayout, colors: IntArray, selected: Int, allowDefault: Boolean, onPick: (Int) -> Unit) {
+    fun fill(
+        row: LinearLayout, colors: IntArray, selected: Int, allowDefault: Boolean,
+        defaultLabel: String = "기본", onPick: (Int) -> Unit,
+    ) {
         val ctx = row.context
         row.removeAllViews()
         val d = ctx.resources.displayMetrics.density
@@ -101,7 +121,7 @@ object Swatches {
             bg.setColor(if (i < 0) Color.TRANSPARENT else colors[i])
             bg.setStroke((1 * d).toInt(), ctx.getColor(R.color.text_muted))
             if (i < 0) {
-                v.text = "기본"
+                v.text = defaultLabel
                 v.setTextColor(ctx.getColor(R.color.text_secondary))
             }
             if (i == selected) bg.setStroke((3 * d).toInt(), ctx.getColor(R.color.text_primary))
@@ -110,7 +130,7 @@ object Swatches {
             lp.setMargins(margin, margin, margin, margin)
             v.layoutParams = lp
             v.setOnClickListener {
-                fill(row, colors, i, allowDefault, onPick)
+                fill(row, colors, i, allowDefault, defaultLabel, onPick)
                 onPick(i)
             }
             row.addView(v)

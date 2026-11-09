@@ -489,6 +489,10 @@ class DecorActivity : AppCompatActivity() {
         radio(R.id.weekday_lang, intArrayOf(R.id.rb_week_ko, R.id.rb_week_en), if (decor.weekdayEn) 1 else 0) {
             decor = decor.copy(weekdayEn = it == 1)
         }
+        radio(R.id.on_accent_mode, intArrayOf(R.id.rb_on_auto, R.id.rb_on_white, R.id.rb_on_black), decor.onAccentMode) {
+            decor = decor.copy(onAccentMode = it)
+        }
+        setupCalendarBg()
         radio(R.id.border_style, intArrayOf(R.id.rb_border_none, R.id.rb_border_line, R.id.rb_border_stitch), decor.border) {
             decor = decor.copy(border = it)
         }
@@ -504,6 +508,31 @@ class DecorActivity : AppCompatActivity() {
             decor = decor.copy(showProjects = checked)
             save()
         }
+    }
+
+    // ---------- 달력 칸 배경 ----------
+    private fun setupCalendarBg() {
+        val choices = Palette.calBgChoices
+        val row = findViewById<LinearLayout>(R.id.calbg_row)
+        val sel = if (decor.calBgColor == 0) -1 else choices.indexOf(decor.calBgColor)
+        Swatches.fill(row, choices, sel, true, "없음") {
+            decor = decor.copy(calBgColor = if (it < 0) 0 else choices[it])
+            save()
+        }
+        val bar = findViewById<SeekBar>(R.id.seek_calbg_alpha)
+        val label = findViewById<TextView>(R.id.calbg_alpha_label)
+        bar.progress = decor.calBgAlpha
+        label.text = "달력 칸 배경 진하기 ${decor.calBgAlpha}%"
+        bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                decor = decor.copy(calBgAlpha = progress)
+                label.text = "달력 칸 배경 진하기 ${progress}%"
+                refreshPreview()
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) { save() }
+        })
     }
 
     // ---------- 추천 테마 ----------

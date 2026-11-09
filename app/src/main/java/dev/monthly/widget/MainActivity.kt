@@ -388,6 +388,7 @@ class MainActivity : AppCompatActivity() {
                 pill.cornerRadius = 10 * resources.displayMetrics.density
                 pill.setColor(ci)
                 badge.background = pill
+                badge.setTextColor(Palette.onColor(ci, widgetTheme))
                 title.alpha = 1f
             } else {
                 badge.visibility = View.GONE

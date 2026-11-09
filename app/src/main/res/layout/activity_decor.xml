@@ -310,6 +310,16 @@
                         <SeekBar android:id="@+id/seek_sat" style="@style/ColorBar" android:max="100" />
                         <TextView style="@style/SliderLabel" android:id="@+id/val_label" android:text="밝기(명도)" />
                         <SeekBar android:id="@+id/seek_val" style="@style/ColorBar" android:max="100" />
+                        <TextView style="@style/SliderLabel" android:text="포인트 색 위 글자 (오늘 동그라미·디데이 배지)" />
+                        <RadioGroup
+                            android:id="@+id/on_accent_mode"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+                            <RadioButton android:id="@+id/rb_on_auto" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="자동" />
+                            <RadioButton android:id="@+id/rb_on_white" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="흰색" />
+                            <RadioButton android:id="@+id/rb_on_black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="검정" />
+                        </RadioGroup>
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -480,6 +490,23 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:max="80" />
+                        <TextView style="@style/SliderLabel" android:layout_marginTop="14dp" android:text="달력 칸 배경 (요일·날짜 뒤에 까는 판)" />
+                        <HorizontalScrollView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:scrollbars="none">
+                            <LinearLayout
+                                android:id="@+id/calbg_row"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal" />
+                        </HorizontalScrollView>
+                        <TextView style="@style/SliderLabel" android:id="@+id/calbg_alpha_label" android:text="달력 칸 배경 진하기" />
+                        <SeekBar
+                            android:id="@+id/seek_calbg_alpha"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:max="100" />
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
