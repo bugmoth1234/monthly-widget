@@ -60,16 +60,28 @@ class DecorActivity : AppCompatActivity() {
 
         // 미리보기를 실제 위젯 비율에 맞춤
         val outer = findViewById<FrameLayout>(R.id.preview_outer)
+        // 미리보기는 위젯과 똑같은 dp 크기로 그린 뒤, 화면에 안 들어가면 통째로 축소해서 보여 줌
+        // (칸만 줄이면 글자 배치가 달라져서 스티커 위치가 어긋남)
         outer.post {
             val (wd, hd) = Store.widgetSize(this)
             val density = resources.displayMetrics.density
             val avail = outer.width - outer.paddingLeft - outer.paddingRight
-            val wPx = minOf(avail, (wd * density).toInt())
-            val hPx = (wPx * hd / wd.toFloat()).toInt()
-            val lp = frame.layoutParams
+            val wPx = (wd * density).toInt()
+            val hPx = (hd * density).toInt()
+            val scale = minOf(1f, avail / wPx.toFloat())
+            val lp = frame.layoutParams as FrameLayout.LayoutParams
             lp.width = wPx
             lp.height = hPx
+            lp.gravity = android.view.Gravity.START or android.view.Gravity.TOP
             frame.layoutParams = lp
+            frame.pivotX = 0f
+            frame.pivotY = 0f
+            frame.scaleX = scale
+            frame.scaleY = scale
+            frame.translationX = (avail - wPx * scale) / 2f
+            val olp = outer.layoutParams
+            olp.height = (hPx * scale).toInt() + outer.paddingTop + outer.paddingBottom
+            outer.layoutParams = olp
         }
         frame.addOnLayoutChangeListener { _, l, t, r, b, oldL, oldT, oldR, oldB ->
             if (r - l != oldR - oldL || b - t != oldB - oldT) frame.post { refreshPreview() }

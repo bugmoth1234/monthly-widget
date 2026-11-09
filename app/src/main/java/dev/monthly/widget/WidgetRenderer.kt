@@ -29,9 +29,7 @@ object WidgetRenderer {
     }
 
     private fun updateOne(ctx: Context, mgr: AppWidgetManager, id: Int, items: List<Item>, theme: Theme) {
-        val opts = mgr.getAppWidgetOptions(id)
-        var wDp = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
-        var hDp = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
+        var (wDp, hDp) = sizeDp(ctx, mgr, id)
         if (wDp <= 0 || hDp <= 0) {
             wDp = 300
             hDp = 320
@@ -55,6 +53,29 @@ object WidgetRenderer {
             mgr.updateAppWidget(id, rv)
         } catch (e: Throwable) {
         }
+    }
+
+    /**
+     * 위젯의 실제 크기(dp). 안드로이드 12+는 런처가 알려 주는 실제 크기 목록을 쓰고,
+     * 그 전 버전은 세로 화면 기준(최소 너비 × 최대 높이)을 씁니다.
+     */
+    fun sizeDp(ctx: Context, mgr: AppWidgetManager, id: Int): Pair<Int, Int> {
+        val opts = mgr.getAppWidgetOptions(id)
+        val portrait = ctx.resources.configuration.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            @Suppress("DEPRECATION")
+            val sizes = opts.getParcelableArrayList<android.util.SizeF>(AppWidgetManager.OPTION_APPWIDGET_SIZES)
+            if (!sizes.isNullOrEmpty()) {
+                // 세로 화면: 가장 키가 큰 크기 / 가로 화면: 가장 넓은 크기
+                val s = if (portrait) sizes.maxByOrNull { it.height }!! else sizes.maxByOrNull { it.width }!!
+                if (s.width > 0 && s.height > 0) return Pair(s.width.toInt(), s.height.toInt())
+            }
+        }
+        val minW = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+        val maxW = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0)
+        val minH = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+        val maxH = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
+        return if (portrait) Pair(minW, maxH) else Pair(maxW, minH)
     }
 
     private fun applyDecor(ctx: Context, rv: RemoteViews, theme: Theme, items: List<Item>, wDp: Int, hDp: Int, maxSide: Int) {
