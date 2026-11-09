@@ -20,8 +20,19 @@ jobs:
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
         with:
           gradle-version: '8.7'
+      - name: Decrypt signing key
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_PASSWORD" ]; then echo "KEYSTORE_PASSWORD 비밀값이 없습니다"; exit 1; fi
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in app/release.keystore.enc -out app/release.p12 -pass env:KEYSTORE_PASSWORD
       - name: Build
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: gradle assembleRelease --no-daemon
+      - name: Remove decrypted key
+        if: always()
+        run: rm -f app/release.p12
       - name: Rename APK
         run: cp app/build/outputs/apk/release/app-release.apk MonthlyWidget.apk
       - name: Publish release

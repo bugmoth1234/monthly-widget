@@ -3,3 +3,9 @@ build/
 local.properties
 .idea/
 *.iml
+
+# 복호화된 서명 키는 절대 올리지 않음
+app/release.p12
+*.p12
+*.jks
+debug.keystore

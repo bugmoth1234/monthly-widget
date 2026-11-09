@@ -15,22 +15,24 @@ android {
         versionName = "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
 
-    // 항상 같은 키로 서명해야 새 버전을 덮어 설치할 수 있고 저장한 일정도 유지됩니다.
+    // 배포용 서명 키: 저장소에는 암호화된 파일(release.keystore.enc)만 있고,
+    // GitHub Actions가 비밀값 KEYSTORE_PASSWORD로 풀어서 app/release.p12로 씁니다.
+    val keystorePassword: String? = System.getenv("KEYSTORE_PASSWORD")
     signingConfigs {
-        getByName("debug") {
-            storeFile = file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+        create("release") {
+            storeFile = file("release.p12")
+            storePassword = keystorePassword
+            keyAlias = "release"
+            keyPassword = keystorePassword
+            storeType = "PKCS12"
         }
     }
     buildTypes {
-        getByName("debug") { signingConfig = signingConfigs.getByName("debug") }
         // 배포용: 디버그 모드가 꺼져 있어 USB 디버깅으로 앱 데이터를 꺼내 볼 수 없음
         getByName("release") {
             isDebuggable = false
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
