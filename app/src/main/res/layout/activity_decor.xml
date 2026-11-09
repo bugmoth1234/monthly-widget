@@ -69,6 +69,41 @@
             android:orientation="horizontal" />
     </HorizontalScrollView>
 
+    <TextView style="@style/SectionLabel" android:text="제목(몇 월) 배경 이미지" />
+    <Button
+        android:id="@+id/btn_header_all"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="모든 달에 쓸 이미지 고르기" />
+    <Button
+        android:id="@+id/btn_header_month"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="이 달만 다른 이미지" />
+    <Button
+        android:id="@+id/btn_header_clear"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="이 달에 보이는 제목 이미지 지우기" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="제목 이미지 어둡게 (글씨가 잘 보이게)" />
+    <SeekBar
+        android:id="@+id/seek_header_dim"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="80" />
+    <RadioGroup
+        android:id="@+id/header_size"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <RadioButton android:id="@+id/rb_header_normal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="얇게" />
+        <RadioButton android:id="@+id/rb_header_large" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="크게 (배너처럼)" />
+    </RadioGroup>
+
     <TextView style="@style/SectionLabel" android:text="배경" />
     <RadioGroup
         android:id="@+id/bg_mode"

@@ -37,6 +37,10 @@ data class Theme(
     val textMode: Int = 0,   // 0 자동, 1 어둡게, 2 밝게
     val caption: String = "",
     val stickers: List<Sticker> = emptyList(),
+    val headerImage: String = "",                    // 모든 달 공통 제목 배경
+    val headerMonthly: Map<String, String> = emptyMap(), // "2026-11" → 그 달만 쓰는 이미지
+    val headerDim: Int = 20,
+    val headerLarge: Boolean = false,
 )
 
 object Store {
@@ -112,6 +116,9 @@ object Store {
                     )
                 )
             }
+            val monthly = mutableMapOf<String, String>()
+            val mo = o.optJSONObject("headerMonthly")
+            if (mo != null) for (k in mo.keys()) monthly[k] = mo.getString(k)
             Theme(
                 accent = o.optInt("accent", 0),
                 bgMode = o.optInt("bgMode", 0),
@@ -122,6 +129,10 @@ object Store {
                 textMode = o.optInt("textMode", 0),
                 caption = o.optString("caption", ""),
                 stickers = st,
+                headerImage = o.optString("headerImage", ""),
+                headerMonthly = monthly,
+                headerDim = o.optInt("headerDim", 20),
+                headerLarge = o.optBoolean("headerLarge", false),
             )
         } catch (e: Exception) {
             Theme()
@@ -142,6 +153,8 @@ object Store {
             .put("accent", t.accent).put("bgMode", t.bgMode).put("bgColor", t.bgColor)
             .put("bgImage", t.bgImage).put("bgAlpha", t.bgAlpha).put("dim", t.dim)
             .put("textMode", t.textMode).put("caption", t.caption).put("stickers", arr)
+            .put("headerImage", t.headerImage).put("headerMonthly", JSONObject(t.headerMonthly as Map<*, *>))
+            .put("headerDim", t.headerDim).put("headerLarge", t.headerLarge)
         prefs(ctx).edit().putString(KEY_THEME, o.toString()).apply()
     }
 

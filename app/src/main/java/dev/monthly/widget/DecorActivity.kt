@@ -23,6 +23,8 @@ class DecorActivity : Activity() {
     companion object {
         private const val REQ_STICKER = 11
         private const val REQ_BG = 12
+        private const val REQ_HEADER_ALL = 13
+        private const val REQ_HEADER_MONTH = 14
     }
 
     private var decor = Theme()
@@ -70,6 +72,20 @@ class DecorActivity : Activity() {
         findViewById<Button>(R.id.btn_del_sticker).setOnClickListener { deleteSelected() }
         findViewById<Button>(R.id.btn_bg_photo).setOnClickListener { pick(REQ_BG) }
         findViewById<Button>(R.id.btn_reset).setOnClickListener { confirmReset() }
+
+        // 제목 배경
+        val ym = WidgetRenderer.displayMonth(this)
+        findViewById<Button>(R.id.btn_header_month).text = "${ym.monthValue}월만 다른 이미지"
+        findViewById<Button>(R.id.btn_header_all).setOnClickListener { pick(REQ_HEADER_ALL) }
+        findViewById<Button>(R.id.btn_header_month).setOnClickListener { pick(REQ_HEADER_MONTH) }
+        findViewById<Button>(R.id.btn_header_clear).setOnClickListener { clearHeader() }
+        setupSeek(R.id.seek_header_dim, decor.headerDim) { decor = decor.copy(headerDim = it) }
+        val sizeGroup = findViewById<RadioGroup>(R.id.header_size)
+        sizeGroup.check(if (decor.headerLarge) R.id.rb_header_large else R.id.rb_header_normal)
+        sizeGroup.setOnCheckedChangeListener { _, id ->
+            decor = decor.copy(headerLarge = id == R.id.rb_header_large)
+            save()
+        }
 
         Swatches.fill(findViewById<LinearLayout>(R.id.accent_row), Palette.colors, decor.accent, false) {
             decor = decor.copy(accent = it)
@@ -176,6 +192,7 @@ class DecorActivity : Activity() {
                 R.id.bg_layer,
                 Decor.renderBackground(this, decor, w, h, 22f * resources.displayMetrics.density),
             )
+            WidgetRenderer.applyHeader(this, rv, decor, w, 1f)
             rv.setViewVisibility(R.id.sticker_layer, View.GONE) // 스티커는 편집 뷰가 직접 그림
             host.removeAllViews()
             host.addView(
@@ -217,6 +234,10 @@ class DecorActivity : Activity() {
                 val name = "st_" + System.currentTimeMillis() + ".png"
                 val ok = Decor.importImage(this, uri, File(Decor.stickerDir(this), name), 600, true)
                 runOnUiThread { if (ok) addSticker(name) else toast("이미지를 불러오지 못했어요") }
+            } else if (requestCode == REQ_HEADER_ALL || requestCode == REQ_HEADER_MONTH) {
+                val name = "hd_" + System.currentTimeMillis() + ".jpg"
+                val ok = Decor.importImage(this, uri, File(Decor.headerDir(this), name), 1200, false)
+                runOnUiThread { if (ok) setHeader(name, requestCode == REQ_HEADER_MONTH) else toast("이미지를 불러오지 못했어요") }
             } else {
                 val name = "bg_" + System.currentTimeMillis() + ".jpg"
                 val ok = Decor.importImage(this, uri, File(Decor.bgDir(this), name), 1400, false)
@@ -232,6 +253,45 @@ class DecorActivity : Activity() {
                 }
             }
         }.start()
+    }
+
+    private fun setHeader(name: String, onlyThisMonth: Boolean) {
+        if (onlyThisMonth) {
+            val key = WidgetRenderer.displayMonth(this).toString()
+            val old = decor.headerMonthly[key]
+            decor = decor.copy(headerMonthly = decor.headerMonthly + (key to name))
+            if (old != null) deleteHeaderFileIfUnused(old)
+        } else {
+            val old = decor.headerImage
+            decor = decor.copy(headerImage = name)
+            if (old.isNotEmpty()) deleteHeaderFileIfUnused(old)
+        }
+        save()
+    }
+
+    private fun clearHeader() {
+        val key = WidgetRenderer.displayMonth(this).toString()
+        val monthly = decor.headerMonthly[key]
+        when {
+            monthly != null -> {
+                decor = decor.copy(headerMonthly = decor.headerMonthly - key)
+                deleteHeaderFileIfUnused(monthly)
+                toast("이 달 전용 이미지를 지웠어요")
+            }
+            decor.headerImage.isNotEmpty() -> {
+                val old = decor.headerImage
+                decor = decor.copy(headerImage = "")
+                deleteHeaderFileIfUnused(old)
+                toast("모든 달 공통 이미지를 지웠어요")
+            }
+            else -> toast("지울 제목 이미지가 없어요")
+        }
+        save()
+    }
+
+    private fun deleteHeaderFileIfUnused(name: String) {
+        if (decor.headerImage == name || decor.headerMonthly.containsValue(name)) return
+        File(Decor.headerDir(this), name).delete()
     }
 
     private fun addSticker(file: String) {
@@ -265,6 +325,7 @@ class DecorActivity : Activity() {
             .setPositiveButton("초기화") { _, _ ->
                 Decor.stickerDir(this).listFiles()?.forEach { it.delete() }
                 Decor.bgDir(this).listFiles()?.forEach { it.delete() }
+                Decor.headerDir(this).listFiles()?.forEach { it.delete() }
                 decor = Theme()
                 Store.saveTheme(this, decor)
                 WidgetRenderer.updateAll(this)

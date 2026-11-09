@@ -15,6 +15,8 @@ import java.time.ZoneId
 
 object WidgetRenderer {
     private const val MAX_LIST = 5
+    const val HEADER_NORMAL_DP = 38
+    const val HEADER_LARGE_DP = 66
     private val WEEKDAY_IDS = intArrayOf(R.id.wd0, R.id.wd1, R.id.wd2, R.id.wd3, R.id.wd4, R.id.wd5, R.id.wd6)
 
     fun updateAll(ctx: Context) {
@@ -63,6 +65,7 @@ object WidgetRenderer {
         val wp = (w * scale).toInt().coerceAtLeast(1)
         val hp = (h * scale).toInt().coerceAtLeast(1)
         rv.setImageViewBitmap(R.id.bg_layer, Decor.renderBackground(ctx, theme, wp, hp, 22f * d * scale))
+        applyHeader(ctx, rv, theme, wp, scale)
         val st = Decor.renderStickers(ctx, theme.stickers, wp, hp)
         if (st != null) {
             rv.setViewVisibility(R.id.sticker_layer, View.VISIBLE)
@@ -72,19 +75,41 @@ object WidgetRenderer {
         }
     }
 
+    fun displayMonth(ctx: Context): YearMonth =
+        YearMonth.from(LocalDate.now()).plusMonths(Store.getOffset(ctx).toLong())
+
+    /** 제목 배경 이미지. widthPx는 위젯 전체 너비, scale은 그림 축소 비율. */
+    fun applyHeader(ctx: Context, rv: RemoteViews, theme: Theme, widthPx: Int, scale: Float) {
+        val d = ctx.resources.displayMetrics.density
+        val hDp = if (theme.headerLarge) HEADER_LARGE_DP else HEADER_NORMAL_DP
+        val w = (widthPx - 24f * d * scale).toInt()
+        val h = (hDp * d * scale).toInt()
+        val bmp = Decor.renderHeader(ctx, theme, displayMonth(ctx), w, h, 12f * d * scale)
+        if (bmp != null) rv.setImageViewBitmap(R.id.header_img, bmp)
+    }
+
     /** 배경 그림을 뺀 위젯 내용 (달력 + 목록). 꾸미기 화면 미리보기에도 사용. */
     fun buildContent(ctx: Context, items: List<Item>, theme: Theme): RemoteViews {
         val pkg = ctx.packageName
         val today = LocalDate.now()
-        val ym = YearMonth.from(today).plusMonths(Store.getOffset(ctx).toLong())
+        val ym = displayMonth(ctx)
         val ink = Inks.of(ctx, theme)
         val accent = Palette.idx(theme.accent)
+        val d = ctx.resources.displayMetrics.density
 
         val rv = RemoteViews(pkg, R.layout.widget_month)
         rv.setTextViewText(R.id.title, Fmt.month(ym))
-        rv.setTextColor(R.id.title, ink.primary)
-        rv.setTextColor(R.id.btn_prev, ink.secondary)
-        rv.setTextColor(R.id.btn_next, ink.secondary)
+
+        // 제목 자리: 이미지가 있으면 흰 글씨 + 높이 조절
+        val hasHeader = Decor.headerFile(theme, ym) != null
+        val hDp = if (theme.headerLarge) HEADER_LARGE_DP else HEADER_NORMAL_DP
+        val vPad = if (hasHeader) ((hDp - 30) / 2f * d).toInt() else 0
+        val hPad = if (hasHeader) (4 * d).toInt() else 0
+        rv.setViewPadding(R.id.header_row, hPad, vPad, hPad, vPad)
+        rv.setViewVisibility(R.id.header_img, if (hasHeader) View.VISIBLE else View.GONE)
+        rv.setTextColor(R.id.title, if (hasHeader) Color.WHITE else ink.primary)
+        rv.setTextColor(R.id.btn_prev, if (hasHeader) Color.WHITE else ink.secondary)
+        rv.setTextColor(R.id.btn_next, if (hasHeader) Color.WHITE else ink.secondary)
         if (theme.caption.isBlank()) {
             rv.setViewVisibility(R.id.caption, View.GONE)
         } else {

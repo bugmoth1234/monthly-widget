@@ -15,6 +15,7 @@ import android.net.Uri
 import android.util.LruCache
 import java.io.File
 import java.io.FileOutputStream
+import java.time.YearMonth
 
 /** 위젯 배경과 스티커를 그림 한 장으로 합성합니다. */
 object Decor {
@@ -25,6 +26,31 @@ object Decor {
 
     fun stickerDir(ctx: Context) = File(ctx.filesDir, "stickers").also { it.mkdirs() }
     fun bgDir(ctx: Context) = File(ctx.filesDir, "backgrounds").also { it.mkdirs() }
+    fun headerDir(ctx: Context) = File(ctx.filesDir, "headers").also { it.mkdirs() }
+
+    /** 그 달에 쓸 제목 배경 파일 이름 (그 달 전용 > 공통 > 없음) */
+    fun headerFile(theme: Theme, ym: YearMonth): String? =
+        theme.headerMonthly[ym.toString()] ?: theme.headerImage.ifEmpty { null }
+
+    fun renderHeader(ctx: Context, theme: Theme, ym: YearMonth, w: Int, h: Int, radius: Float): Bitmap? {
+        val name = headerFile(theme, ym) ?: return null
+        val photo = load(File(headerDir(ctx), name)) ?: return null
+        if (w <= 0 || h <= 0) return null
+        val fill = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(fill)
+        val s = maxOf(w / photo.width.toFloat(), h / photo.height.toFloat())
+        val m = Matrix()
+        m.postScale(s, s)
+        m.postTranslate((w - photo.width * s) / 2f, (h - photo.height * s) / 2f)
+        c.drawBitmap(photo, m, stickerPaint)
+        c.drawColor(Color.argb(theme.headerDim.coerceIn(0, 90) * 255 / 100, 0, 0, 0))
+        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.shader = BitmapShader(fill, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+        Canvas(out).drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), radius, radius, p)
+        fill.recycle()
+        return out
+    }
 
     fun load(file: File): Bitmap? {
         if (!file.exists()) return null
