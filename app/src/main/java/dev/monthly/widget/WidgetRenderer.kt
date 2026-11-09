@@ -158,17 +158,53 @@ object WidgetRenderer {
 
         val bodyTf = Fonts.get(ctx, theme.bodyFont)
         if (bodyTf != null) {
-            val headerDp = if (hasHeader) (if (theme.headerLarge) HEADER_LARGE_DP else HEADER_NORMAL_DP) else 30
             val bw = (widthPx - (24 + 2 * theme.bleed) * u).toInt()
-            val bh = (heightPx - (24 + 2 * theme.bleed + headerDp) * u).toInt()
-            if (bw > 0 && bh > 0) {
-                val bmp = BodyPainter.draw(ctx, theme, items, ym, LocalDate.now(), ink, bodyTf, bw, bh, u)
-                rv.setImageViewBitmap(R.id.body_img, bmp)
-                for (id in intArrayOf(R.id.caption, R.id.weekday_row, R.id.grid, R.id.divider, R.id.list)) {
-                    rv.setViewVisibility(id, View.GONE)
-                }
-                rv.setViewVisibility(R.id.body_img, View.VISIBLE)
+            if (bw > 0) applyBodyFont(ctx, rv, theme, items, ym, ink, bodyTf, bw, u)
+        }
+    }
+
+    /**
+     * 글자 글꼴: 달력은 그림 한 장, 목록은 줄마다 그림으로 바꿔 끼움.
+     * ○ 자리에는 투명한 눌림 영역을 겹쳐서 위젯에서 바로 체크할 수 있게 함.
+     */
+    private fun applyBodyFont(
+        ctx: Context, rv: RemoteViews, theme: Theme, items: List<Item>, ym: YearMonth,
+        ink: Ink, tf: android.graphics.Typeface, bw: Int, u: Float,
+    ) {
+        val pkg = ctx.packageName
+        val today = LocalDate.now()
+        val bp = BodyPainter(theme, ink, tf, bw, u)
+
+        rv.setImageViewBitmap(R.id.body_img, bp.calendar(items, ym, today))
+        for (id in intArrayOf(R.id.caption, R.id.weekday_row, R.id.grid)) rv.setViewVisibility(id, View.GONE)
+        rv.setViewVisibility(R.id.body_img, View.VISIBLE)
+
+        rv.removeAllViews(R.id.list)
+        fun row(bmp: android.graphics.Bitmap): RemoteViews {
+            val r = RemoteViews(pkg, R.layout.widget_img_row)
+            r.setImageViewBitmap(R.id.img_row, bmp)
+            return r
+        }
+        val plan = listPlan(ctx, items, ym, today, theme)
+        for (pj in plan.projects) {
+            val r = row(bp.projectRow(pj, items, today))
+            r.setOnClickPendingIntent(R.id.img_root, projectPI(ctx, pj))
+            rv.addView(R.id.list, r)
+        }
+        plan.highlight?.let { rv.addView(R.id.list, row(bp.highlight(it, today))) }
+        if (plan.rest.isEmpty() && plan.highlight == null && plan.projects.isEmpty()) {
+            rv.addView(R.id.list, row(bp.textRow("일정이 없어요. 눌러서 추가해 보세요.")))
+        }
+        for (e in plan.rest.take(plan.maxRows)) {
+            val r = row(bp.itemRow(e, today))
+            if (e.item.type == ItemType.TODO) {
+                r.setViewVisibility(R.id.img_tap, View.VISIBLE)
+                r.setOnClickPendingIntent(R.id.img_tap, togglePI(ctx, e.item.id))
             }
+            rv.addView(R.id.list, r)
+        }
+        if (plan.rest.size > plan.maxRows) {
+            rv.addView(R.id.list, row(bp.textRow("외 ${plan.rest.size - plan.maxRows}개 더 있음")))
         }
     }
 
