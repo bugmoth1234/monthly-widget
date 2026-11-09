@@ -109,7 +109,8 @@ class StickerEditView @JvmOverloads constructor(
                 selectedId = s?.id
                 onSelection?.invoke(s)
                 invalidate()
-                if (s == null) return false // 빈 곳은 화면 스크롤에 양보
+                // 빈 곳을 눌러도 아래 미리보기(위젯 버튼)로 넘기지 않음 — 실수로 일정 화면이 열리지 않게
+                if (s == null) return true
                 parent?.requestDisallowInterceptTouchEvent(true)
                 lastX = e.x
                 lastY = e.y
