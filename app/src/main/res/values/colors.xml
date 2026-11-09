@@ -10,4 +10,5 @@
     <color name="dday">#F06292</color>
     <color name="divider">#22000000</color>
     <color name="on_accent">#FFFFFF</color>
+    <color name="preview_bg">#FFE4E4EA</color>
 </resources>

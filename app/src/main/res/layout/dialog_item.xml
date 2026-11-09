@@ -1,4 +1,7 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -30,7 +33,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="내용 (예: 과제 제출, 크리스마스)"
+        android:hint="내용 (예: 최애 생일, 굿즈 예약)"
         android:inputType="text"
         android:maxLines="1" />
 
@@ -42,4 +45,44 @@
         android:layout_marginTop="4dp"
         android:gravity="start|center_vertical"
         android:textSize="16sp" />
+
+    <CheckBox
+        android:id="@+id/input_yearly"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="매년 반복 (생일·기념일)"
+        android:visibility="gone" />
+
+    <TextView style="@style/SectionLabel" android:text="아이콘" />
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+        <LinearLayout
+            android:id="@+id/emoji_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+    <EditText
+        android:id="@+id/input_emoji"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="직접 입력 (이모지 1개 추천)"
+        android:inputType="text"
+        android:maxLength="8"
+        android:maxLines="1" />
+
+    <TextView style="@style/SectionLabel" android:text="색" />
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+        <LinearLayout
+            android:id="@+id/color_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
 </LinearLayout>
+</ScrollView>

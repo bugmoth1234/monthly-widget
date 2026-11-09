@@ -1,0 +1,149 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <FrameLayout
+        android:id="@+id/preview_outer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/preview_bg"
+        android:padding="12dp">
+        <FrameLayout
+            android:id="@+id/preview_frame"
+            android:layout_width="match_parent"
+            android:layout_height="320dp"
+            android:layout_gravity="center_horizontal">
+            <FrameLayout
+                android:id="@+id/preview_host"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+            <dev.monthly.widget.StickerEditView
+                android:id="@+id/sticker_edit"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </FrameLayout>
+    </FrameLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="스티커를 눌러 고른 뒤 끌어서 옮기고, 두 손가락으로 크기와 각도를 바꿀 수 있어요."
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/btn_add_sticker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="+ 스티커 추가" />
+        <Button
+            android:id="@+id/btn_del_sticker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="선택한 스티커 삭제" />
+    </LinearLayout>
+
+    <TextView style="@style/SectionLabel" android:text="포인트 색" />
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+        <LinearLayout
+            android:id="@+id/accent_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
+    <TextView style="@style/SectionLabel" android:text="배경" />
+    <RadioGroup
+        android:id="@+id/bg_mode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <RadioButton android:id="@+id/rb_bg_default" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="기본" />
+        <RadioButton android:id="@+id/rb_bg_color" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="단색" />
+        <RadioButton android:id="@+id/rb_bg_photo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="사진" />
+    </RadioGroup>
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+        <LinearLayout
+            android:id="@+id/bgcolor_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+    <Button
+        android:id="@+id/btn_bg_photo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="배경 사진 고르기" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="배경 불투명도 (낮추면 바탕화면이 비쳐요)" />
+    <SeekBar
+        android:id="@+id/seek_alpha"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="사진 어둡게" />
+    <SeekBar
+        android:id="@+id/seek_dim"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="80" />
+
+    <TextView style="@style/SectionLabel" android:text="글자색" />
+    <RadioGroup
+        android:id="@+id/text_mode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <RadioButton android:id="@+id/rb_text_auto" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="자동" />
+        <RadioButton android:id="@+id/rb_text_dark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="어둡게" />
+        <RadioButton android:id="@+id/rb_text_light" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="밝게" />
+    </RadioGroup>
+
+    <TextView style="@style/SectionLabel" android:text="위젯 문구" />
+    <EditText
+        android:id="@+id/input_caption"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="예: 최애 생일까지 존버 중"
+        android:inputType="text"
+        android:maxLength="40"
+        android:maxLines="1" />
+
+    <Button
+        android:id="@+id/btn_reset"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="꾸미기 전부 초기화"
+        android:textColor="@color/sunday" />
+</LinearLayout>
+</ScrollView>

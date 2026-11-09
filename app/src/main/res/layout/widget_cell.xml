@@ -18,9 +18,9 @@
     <TextView
         android:id="@+id/cell_dot"
         android:layout_width="wrap_content"
-        android:layout_height="8dp"
+        android:layout_height="11dp"
         android:gravity="center"
         android:includeFontPadding="false"
         android:textColor="@color/accent"
-        android:textSize="9sp" />
+        android:textSize="8sp" />
 </LinearLayout>

@@ -6,4 +6,5 @@
     <color name="sunday">#FF6B6F</color>
     <color name="saturday">#6E9BFF</color>
     <color name="divider">#33FFFFFF</color>
+    <color name="preview_bg">#FF2A2A30</color>
 </resources>

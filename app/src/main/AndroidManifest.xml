@@ -13,6 +13,8 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".DecorActivity" android:exported="false" android:label="꾸미기" />
+
         <receiver android:name=".MonthWidgetProvider" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
