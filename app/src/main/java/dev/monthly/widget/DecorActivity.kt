@@ -66,23 +66,20 @@ class DecorActivity : AppCompatActivity() {
             val (wd, hd) = Store.widgetSize(this)
             val density = resources.displayMetrics.density
             val avail = outer.width - outer.paddingLeft - outer.paddingRight
-            val wPx = (wd * density).toInt()
-            val hPx = (hd * density).toInt()
-            val scale = minOf(1f, avail / wPx.toFloat())
+            pvW = (wd * density).toInt()
+            pvH = (hd * density).toInt()
+            fitScale = minOf(1f, avail / pvW.toFloat())
             val lp = frame.layoutParams as FrameLayout.LayoutParams
-            lp.width = wPx
-            lp.height = hPx
+            lp.width = pvW
+            lp.height = pvH
             lp.gravity = android.view.Gravity.START or android.view.Gravity.TOP
             frame.layoutParams = lp
             frame.pivotX = 0f
             frame.pivotY = 0f
-            frame.scaleX = scale
-            frame.scaleY = scale
-            frame.translationX = (avail - wPx * scale) / 2f
-            val olp = outer.layoutParams
-            olp.height = (hPx * scale).toInt() + outer.paddingTop + outer.paddingBottom
-            outer.layoutParams = olp
+            userRatio = getSharedPreferences("ui", MODE_PRIVATE).getFloat("preview_ratio", 1f).coerceIn(minRatio(), 1f)
+            applyPreviewScale()
         }
+        setupPreviewHandle()
         frame.addOnLayoutChangeListener { _, l, t, r, b, oldL, oldT, oldR, oldB ->
             if (r - l != oldR - oldL || b - t != oldB - oldT) frame.post { refreshPreview() }
         }
@@ -451,6 +448,72 @@ class DecorActivity : AppCompatActivity() {
         hueBar.setOnSeekBarChangeListener(listener)
         satBar.setOnSeekBarChangeListener(listener)
         valBar.setOnSeekBarChangeListener(listener)
+    }
+
+    // ---------- 미리보기 크기 손잡이 ----------
+    private var pvW = 1
+    private var pvH = 1
+    private var fitScale = 1f   // 화면 너비에 맞춘 기본 축소 비율
+    private var userRatio = 1f  // 손잡이로 줄인 비율 (1 = 최대)
+
+    /** 미리보기를 가장 작게 줄였을 때 높이 약 120dp */
+    private fun minRatio(): Float {
+        val full = pvH * fitScale
+        if (full <= 0f) return 1f
+        return (120 * resources.displayMetrics.density / full).coerceIn(0.2f, 1f)
+    }
+
+    private fun applyPreviewScale() {
+        val outer = findViewById<FrameLayout>(R.id.preview_outer)
+        val avail = outer.width - outer.paddingLeft - outer.paddingRight
+        val s = fitScale * userRatio
+        frame.scaleX = s
+        frame.scaleY = s
+        frame.translationX = (avail - pvW * s) / 2f
+        val olp = outer.layoutParams
+        olp.height = (pvH * s).toInt() + outer.paddingTop + outer.paddingBottom
+        outer.layoutParams = olp
+    }
+
+    private fun setupPreviewHandle() {
+        val d = resources.displayMetrics.density
+        val pill = android.graphics.drawable.GradientDrawable()
+        pill.cornerRadius = 3 * d
+        pill.setColor(getColor(R.color.text_muted))
+        findViewById<View>(R.id.preview_handle_pill).background = pill
+
+        val handle = findViewById<View>(R.id.preview_handle)
+        var startY = 0f
+        var startRatio = 1f
+        var moved = false
+        handle.setOnTouchListener { v, e ->
+            when (e.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    startY = e.rawY
+                    startRatio = userRatio
+                    moved = false
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    val dy = e.rawY - startY
+                    if (kotlin.math.abs(dy) > 8 * d) moved = true
+                    if (moved) {
+                        val full = pvH * fitScale
+                        userRatio = ((full * startRatio + dy) / full).coerceIn(minRatio(), 1f)
+                        applyPreviewScale()
+                    }
+                }
+                android.view.MotionEvent.ACTION_UP -> {
+                    if (!moved) {
+                        // 톡 누르면 작게 ↔ 크게
+                        userRatio = if (userRatio > 0.75f) minRatio() else 1f
+                        applyPreviewScale()
+                        v.performClick()
+                    }
+                    getSharedPreferences("ui", MODE_PRIVATE).edit().putFloat("preview_ratio", userRatio).apply()
+                }
+            }
+            true
+        }
     }
 
     // ---------- 접고 펴는 묶음 ----------
