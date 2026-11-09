@@ -41,6 +41,9 @@ data class Theme(
     val headerMonthly: Map<String, String> = emptyMap(), // "2026-11" → 그 달만 쓰는 이미지
     val headerDim: Int = 20,
     val headerLarge: Boolean = false,
+    val titleFont: String = "",   // 글꼴 파일 이름 (비어 있으면 기본 글꼴)
+    val bodyFont: String = "",
+    val bodyFontScale: Int = 100, // 글꼴 파일을 쓸 때 글자 크기 %
 )
 
 object Store {
@@ -133,6 +136,9 @@ object Store {
                 headerMonthly = monthly,
                 headerDim = o.optInt("headerDim", 20),
                 headerLarge = o.optBoolean("headerLarge", false),
+                titleFont = o.optString("titleFont", ""),
+                bodyFont = o.optString("bodyFont", ""),
+                bodyFontScale = o.optInt("bodyFontScale", 100),
             )
         } catch (e: Exception) {
             Theme()
@@ -155,6 +161,7 @@ object Store {
             .put("textMode", t.textMode).put("caption", t.caption).put("stickers", arr)
             .put("headerImage", t.headerImage).put("headerMonthly", JSONObject(t.headerMonthly as Map<*, *>))
             .put("headerDim", t.headerDim).put("headerLarge", t.headerLarge)
+            .put("titleFont", t.titleFont).put("bodyFont", t.bodyFont).put("bodyFontScale", t.bodyFontScale)
         prefs(ctx).edit().putString(KEY_THEME, o.toString()).apply()
     }
 

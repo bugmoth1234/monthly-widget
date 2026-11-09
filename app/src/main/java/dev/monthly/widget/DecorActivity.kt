@@ -14,6 +14,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.RadioGroup
 import android.widget.SeekBar
+import android.widget.TextView
 import android.widget.Toast
 import java.io.File
 import java.util.UUID
@@ -25,6 +26,8 @@ class DecorActivity : Activity() {
         private const val REQ_BG = 12
         private const val REQ_HEADER_ALL = 13
         private const val REQ_HEADER_MONTH = 14
+        private const val REQ_TITLE_FONT = 15
+        private const val REQ_BODY_FONT = 16
     }
 
     private var decor = Theme()
@@ -72,6 +75,30 @@ class DecorActivity : Activity() {
         findViewById<Button>(R.id.btn_del_sticker).setOnClickListener { deleteSelected() }
         findViewById<Button>(R.id.btn_bg_photo).setOnClickListener { pick(REQ_BG) }
         findViewById<Button>(R.id.btn_reset).setOnClickListener { confirmReset() }
+
+        // 글꼴
+        updateFontLabels()
+        findViewById<Button>(R.id.btn_title_font).setOnClickListener { pickFile(REQ_TITLE_FONT) }
+        findViewById<Button>(R.id.btn_body_font).setOnClickListener { pickFile(REQ_BODY_FONT) }
+        findViewById<Button>(R.id.btn_title_font_clear).setOnClickListener { setFont("", title = true) }
+        findViewById<Button>(R.id.btn_body_font_clear).setOnClickListener { setFont("", title = false) }
+        val scaleGroup = findViewById<RadioGroup>(R.id.font_scale)
+        scaleGroup.check(
+            when {
+                decor.bodyFontScale < 100 -> R.id.rb_scale_s
+                decor.bodyFontScale > 100 -> R.id.rb_scale_l
+                else -> R.id.rb_scale_m
+            }
+        )
+        scaleGroup.setOnCheckedChangeListener { _, id ->
+            val v = when (id) {
+                R.id.rb_scale_s -> 90
+                R.id.rb_scale_l -> 115
+                else -> 100
+            }
+            decor = decor.copy(bodyFontScale = v)
+            save()
+        }
 
         // 제목 배경
         val ym = WidgetRenderer.displayMonth(this)
@@ -193,6 +220,7 @@ class DecorActivity : Activity() {
                 Decor.renderBackground(this, decor, w, h, 22f * resources.displayMetrics.density),
             )
             WidgetRenderer.applyHeader(this, rv, decor, w, 1f)
+            WidgetRenderer.applyFonts(this, rv, decor, items, w, h, 1f)
             rv.setViewVisibility(R.id.sticker_layer, View.GONE) // 스티커는 편집 뷰가 직접 그림
             host.removeAllViews()
             host.addView(
@@ -234,6 +262,12 @@ class DecorActivity : Activity() {
                 val name = "st_" + System.currentTimeMillis() + ".png"
                 val ok = Decor.importImage(this, uri, File(Decor.stickerDir(this), name), 600, true)
                 runOnUiThread { if (ok) addSticker(name) else toast("이미지를 불러오지 못했어요") }
+            } else if (requestCode == REQ_TITLE_FONT || requestCode == REQ_BODY_FONT) {
+                val name = Fonts.import(this, uri)
+                runOnUiThread {
+                    if (name != null) setFont(name, title = requestCode == REQ_TITLE_FONT)
+                    else toast("글꼴 파일을 읽지 못했어요 (.ttf / .otf 파일인지 확인해 주세요)")
+                }
             } else if (requestCode == REQ_HEADER_ALL || requestCode == REQ_HEADER_MONTH) {
                 val name = "hd_" + System.currentTimeMillis() + ".jpg"
                 val ok = Decor.importImage(this, uri, File(Decor.headerDir(this), name), 1200, false)
@@ -253,6 +287,30 @@ class DecorActivity : Activity() {
                 }
             }
         }.start()
+    }
+
+    private fun pickFile(req: Int) {
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+            .setType("*/*")
+            .addCategory(Intent.CATEGORY_OPENABLE)
+        try {
+            startActivityForResult(Intent.createChooser(intent, "글꼴 파일 고르기"), req)
+        } catch (e: Exception) {
+            toast("파일을 고를 수 있는 앱이 없어요")
+        }
+    }
+
+    private fun setFont(name: String, title: Boolean) {
+        val old = if (title) decor.titleFont else decor.bodyFont
+        decor = if (title) decor.copy(titleFont = name) else decor.copy(bodyFont = name)
+        if (old.isNotEmpty() && old != decor.titleFont && old != decor.bodyFont) File(Fonts.dir(this), old).delete()
+        updateFontLabels()
+        save()
+    }
+
+    private fun updateFontLabels() {
+        findViewById<TextView>(R.id.title_font_label).text = "제목 글꼴: " + Fonts.label(decor.titleFont)
+        findViewById<TextView>(R.id.body_font_label).text = "글자 글꼴 (요일·날짜·목록): " + Fonts.label(decor.bodyFont)
     }
 
     private fun setHeader(name: String, onlyThisMonth: Boolean) {
@@ -321,11 +379,12 @@ class DecorActivity : Activity() {
     private fun confirmReset() {
         AlertDialog.Builder(this)
             .setTitle("꾸미기 초기화")
-            .setMessage("스티커, 배경 사진, 색 설정이 모두 지워져요. 일정은 그대로예요.")
+            .setMessage("스티커, 배경·제목 이미지, 글꼴, 색 설정이 모두 지워져요. 일정은 그대로예요.")
             .setPositiveButton("초기화") { _, _ ->
                 Decor.stickerDir(this).listFiles()?.forEach { it.delete() }
                 Decor.bgDir(this).listFiles()?.forEach { it.delete() }
                 Decor.headerDir(this).listFiles()?.forEach { it.delete() }
+                Fonts.dir(this).listFiles()?.forEach { it.delete() }
                 decor = Theme()
                 Store.saveTheme(this, decor)
                 WidgetRenderer.updateAll(this)

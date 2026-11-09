@@ -55,6 +55,14 @@
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
+                <ImageView
+                    android:id="@+id/title_img"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:scaleType="fitCenter"
+                    android:visibility="gone" />
+
                 <TextView
                     android:id="@+id/btn_next"
                     android:layout_width="36dp"
@@ -77,7 +85,16 @@
             android:textSize="12sp"
             android:visibility="gone" />
 
+        <ImageView
+            android:id="@+id/body_img"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scaleType="fitStart"
+            android:visibility="gone" />
+
         <LinearLayout
+            android:id="@+id/weekday_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"

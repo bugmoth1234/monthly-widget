@@ -14,7 +14,7 @@ import java.time.YearMonth
 import java.time.ZoneId
 
 object WidgetRenderer {
-    private const val MAX_LIST = 5
+    const val MAX_LIST = 5
     const val HEADER_NORMAL_DP = 38
     const val HEADER_LARGE_DP = 66
     private val WEEKDAY_IDS = intArrayOf(R.id.wd0, R.id.wd1, R.id.wd2, R.id.wd3, R.id.wd4, R.id.wd5, R.id.wd6)
@@ -42,7 +42,7 @@ object WidgetRenderer {
         for (maxSide in intArrayOf(900, 600, 380)) {
             try {
                 val rv = buildContent(ctx, items, theme)
-                applyDecor(ctx, rv, theme, wDp, hDp, maxSide)
+                applyDecor(ctx, rv, theme, items, wDp, hDp, maxSide)
                 mgr.updateAppWidget(id, rv)
                 return
             } catch (e: Throwable) {
@@ -57,7 +57,7 @@ object WidgetRenderer {
         }
     }
 
-    private fun applyDecor(ctx: Context, rv: RemoteViews, theme: Theme, wDp: Int, hDp: Int, maxSide: Int) {
+    private fun applyDecor(ctx: Context, rv: RemoteViews, theme: Theme, items: List<Item>, wDp: Int, hDp: Int, maxSide: Int) {
         val d = ctx.resources.displayMetrics.density
         val w = wDp * d
         val h = hDp * d
@@ -66,6 +66,7 @@ object WidgetRenderer {
         val hp = (h * scale).toInt().coerceAtLeast(1)
         rv.setImageViewBitmap(R.id.bg_layer, Decor.renderBackground(ctx, theme, wp, hp, 22f * d * scale))
         applyHeader(ctx, rv, theme, wp, scale)
+        applyFonts(ctx, rv, theme, items, wp, hp, scale)
         val st = Decor.renderStickers(ctx, theme.stickers, wp, hp)
         if (st != null) {
             rv.setViewVisibility(R.id.sticker_layer, View.VISIBLE)
@@ -86,6 +87,44 @@ object WidgetRenderer {
         val h = (hDp * d * scale).toInt()
         val bmp = Decor.renderHeader(ctx, theme, displayMonth(ctx), w, h, 12f * d * scale)
         if (bmp != null) rv.setImageViewBitmap(R.id.header_img, bmp)
+    }
+
+    /**
+     * 글꼴 파일을 고른 경우: 제목 / 나머지 글자를 그 글꼴로 그린 그림으로 바꿔 끼웁니다.
+     * widthPx, heightPx는 위젯 전체 크기(그림 축소 반영), scale은 축소 비율.
+     */
+    fun applyFonts(ctx: Context, rv: RemoteViews, theme: Theme, items: List<Item>, widthPx: Int, heightPx: Int, scale: Float) {
+        val u = ctx.resources.displayMetrics.density * scale // 1dp의 픽셀 수
+        val ym = displayMonth(ctx)
+        val ink = Inks.of(ctx, theme)
+        val hasHeader = Decor.headerFile(theme, ym) != null
+
+        val titleTf = Fonts.get(ctx, theme.titleFont)
+        if (titleTf != null) {
+            val tw = (widthPx - 96 * u).toInt()
+            val th = (30 * u).toInt()
+            if (tw > 0 && th > 0) {
+                val color = if (hasHeader) Color.WHITE else ink.primary
+                rv.setImageViewBitmap(R.id.title_img, Fonts.drawTitle(Fmt.month(ym), titleTf, tw, th, color, 19 * u))
+                rv.setViewVisibility(R.id.title, View.GONE)
+                rv.setViewVisibility(R.id.title_img, View.VISIBLE)
+            }
+        }
+
+        val bodyTf = Fonts.get(ctx, theme.bodyFont)
+        if (bodyTf != null) {
+            val headerDp = if (hasHeader) (if (theme.headerLarge) HEADER_LARGE_DP else HEADER_NORMAL_DP) else 30
+            val bw = (widthPx - 24 * u).toInt()
+            val bh = (heightPx - (24 + headerDp) * u).toInt()
+            if (bw > 0 && bh > 0) {
+                val bmp = BodyPainter.draw(ctx, theme, items, ym, LocalDate.now(), ink, bodyTf, bw, bh, u)
+                rv.setImageViewBitmap(R.id.body_img, bmp)
+                for (id in intArrayOf(R.id.caption, R.id.weekday_row, R.id.grid, R.id.divider, R.id.list)) {
+                    rv.setViewVisibility(id, View.GONE)
+                }
+                rv.setViewVisibility(R.id.body_img, View.VISIBLE)
+            }
+        }
     }
 
     /** 배경 그림을 뺀 위젯 내용 (달력 + 목록). 꾸미기 화면 미리보기에도 사용. */
@@ -218,6 +257,8 @@ object WidgetRenderer {
         rv.setOnClickPendingIntent(R.id.title, open)
         rv.setOnClickPendingIntent(R.id.grid, open)
         rv.setOnClickPendingIntent(R.id.list, open)
+        rv.setOnClickPendingIntent(R.id.title_img, open)
+        rv.setOnClickPendingIntent(R.id.body_img, open)
         rv.setOnClickPendingIntent(R.id.btn_prev, broadcast(ctx, MonthWidgetProvider.ACTION_PREV, 1))
         rv.setOnClickPendingIntent(R.id.btn_next, broadcast(ctx, MonthWidgetProvider.ACTION_NEXT, 2))
         return rv
