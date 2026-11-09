@@ -73,6 +73,8 @@ class DecorActivity : Activity() {
 
         findViewById<Button>(R.id.btn_add_sticker).setOnClickListener { pick(REQ_STICKER) }
         findViewById<Button>(R.id.btn_del_sticker).setOnClickListener { deleteSelected() }
+        findViewById<Button>(R.id.btn_sticker_front).setOnClickListener { moveSelected(+1) }
+        findViewById<Button>(R.id.btn_sticker_back).setOnClickListener { moveSelected(-1) }
         findViewById<Button>(R.id.btn_bg_photo).setOnClickListener { pick(REQ_BG) }
         findViewById<Button>(R.id.btn_reset).setOnClickListener { confirmReset() }
 
@@ -357,6 +359,27 @@ class DecorActivity : Activity() {
         editor.stickers.add(s)
         editor.selectedId = s.id
         decor = decor.copy(stickers = editor.stickers.toList())
+        save(refresh = false)
+        editor.invalidate()
+    }
+
+    /** 겹치는 순서 바꾸기: 목록 뒤쪽일수록 위에 그려짐. dir +1 = 한 칸 앞으로, -1 = 한 칸 뒤로 */
+    private fun moveSelected(dir: Int) {
+        val list = editor.stickers
+        val i = list.indexOfFirst { it.id == editor.selectedId }
+        if (i < 0) {
+            toast("순서를 바꿀 스티커를 미리보기에서 먼저 눌러 주세요")
+            return
+        }
+        val j = i + dir
+        if (j < 0 || j >= list.size) {
+            toast(if (dir > 0) "이미 맨 앞이에요" else "이미 맨 뒤예요")
+            return
+        }
+        val tmp = list[i]
+        list[i] = list[j]
+        list[j] = tmp
+        decor = decor.copy(stickers = list.toList())
         save(refresh = false)
         editor.invalidate()
     }

@@ -57,6 +57,25 @@
             android:text="선택한 스티커 삭제" />
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/btn_sticker_back"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="↓ 뒤로" />
+        <Button
+            android:id="@+id/btn_sticker_front"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="↑ 앞으로" />
+    </LinearLayout>
+
     <TextView style="@style/SectionLabel" android:text="포인트 색" />
     <HorizontalScrollView
         android:layout_width="match_parent"
