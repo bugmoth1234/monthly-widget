@@ -97,7 +97,13 @@ object WidgetRenderer {
         }
     }
 
-    class ListPlan(val projects: List<Project>, val highlight: Entry?, val rest: List<Entry>, val maxRows: Int)
+    class ListPlan(
+        val projects: List<Project>,
+        val projectTasks: Map<Long, Entry>, // 프로젝트별 가장 가까운 남은 일 1개
+        val highlight: Entry?,
+        val rest: List<Entry>,              // 프로젝트에 안 속한 일정 (위젯에 보인 프로젝트의 일은 제외)
+        val maxRows: Int,
+    )
 
     /** 목록 구성: 프로젝트(최대 2) + 강조할 디데이 1개 + 나머지 일정. 위젯 공간에 맞게 줄 수 조절. */
     fun listPlan(ctx: Context, items: List<Item>, ym: YearMonth, today: LocalDate, theme: Theme): ListPlan {
@@ -109,10 +115,20 @@ object WidgetRenderer {
             emptyList()
         }
         val hl = if (theme.highlight) Store.nearestDday(items, today) else null
+        // 프로젝트마다 가장 가까운 남은 일 (밀린 일이 있으면 그게 먼저)
+        val tasks = HashMap<Long, Entry>()
+        for (p in projects) {
+            items.filter { it.projectId == p.id && !it.done }
+                .map { Entry(it, Store.nextOccurrence(it, today), it.type == ItemType.TODO && it.date.isBefore(today)) }
+                .filter { it.item.type == ItemType.TODO || !it.date.isBefore(today) }
+                .minWithOrNull(compareBy<Entry>({ it.date }, { it.item.id }))
+                ?.let { tasks[p.id] = it }
+        }
+        val shownIds = projects.map { it.id }.toSet()
         val all = Store.entries(items, ym, today, Store.carryOver(ctx))
-        val rest = if (hl == null) all else all.filter { it.item.id != hl.item.id }
-        val used = projects.size + (if (hl != null) 2 else 0)
-        return ListPlan(projects, hl, rest, maxOf(1, MAX_LIST - used))
+        val rest = all.filter { it.item.projectId !in shownIds && it.item.id != hl?.item?.id }
+        val used = projects.size * 2 + (if (hl != null) 2 else 0)
+        return ListPlan(projects, tasks, hl, rest, maxOf(1, MAX_LIST - used))
     }
 
     /** 위젯의 ○를 누르면 그 할 일을 완료/취소 */
@@ -136,6 +152,44 @@ object WidgetRenderer {
             ctx, 5000 + (p.id % 100000).toInt(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+    }
+
+    /** 일정 한 줄 (indentPx만큼 들여쓰기 — 프로젝트 아래 일정용) */
+    private fun itemRow(ctx: Context, e: Entry, theme: Theme, ink: Ink, today: LocalDate, indentPx: Int = 0): RemoteViews {
+        val item = e.item
+        val row = RemoteViews(ctx.packageName, R.layout.widget_item)
+        val ci = Palette.itemColor(item, theme)
+        val faded = item.type == ItemType.TODO && item.done
+        if (indentPx > 0) row.setViewPadding(R.id.item_root, indentPx, 0, 0, 0)
+        if (item.type == ItemType.DDAY) {
+            row.setTextViewText(R.id.item_badge, Fmt.dday(e.date, today))
+            row.setTextColor(R.id.item_badge, Palette.onColor(ci, theme))
+            row.setViewVisibility(R.id.item_pill, View.VISIBLE)
+            row.setInt(R.id.item_pill, "setColorFilter", ci)
+        } else {
+            row.setTextViewText(R.id.item_badge, if (item.done) "✓" else "○")
+            row.setTextColor(R.id.item_badge, if (item.done) ink.muted else ci)
+            row.setOnClickPendingIntent(R.id.item_badge, togglePI(ctx, item.id))
+        }
+        row.setTextViewText(R.id.item_date, if (e.overdue) "밀림 " + Fmt.shortDate(e.date) else Fmt.shortDate(e.date))
+        row.setTextViewText(R.id.item_title, Fmt.titleWithEmoji(item))
+        row.setTextColor(R.id.item_title, if (faded) ink.muted else ink.primary)
+        row.setTextColor(R.id.item_date, if (faded) ink.muted else if (e.overdue) ink.sun else ink.secondary)
+        return row
+    }
+
+    private fun textRow(ctx: Context, text: String, color: Int, indentPx: Int = 0): RemoteViews {
+        val r = RemoteViews(ctx.packageName, R.layout.widget_more)
+        r.setTextViewText(R.id.more_text, text)
+        r.setTextColor(R.id.more_text, color)
+        if (indentPx > 0) r.setViewPadding(R.id.more_text, indentPx, (2 * ctx.resources.displayMetrics.density).toInt(), 0, 0)
+        return r
+    }
+
+    private fun sepRow(ctx: Context, ink: Ink): RemoteViews {
+        val r = RemoteViews(ctx.packageName, R.layout.widget_sep)
+        r.setInt(R.id.sep, "setBackgroundColor", ink.divider)
+        return r
     }
 
     fun displayMonth(ctx: Context): YearMonth =
@@ -203,10 +257,23 @@ object WidgetRenderer {
             return r
         }
         val plan = listPlan(ctx, items, ym, today, theme)
+        val indent = (22 * u).toInt()
+        val bpIndent = BodyPainter(theme, ink, tf, (bw - indent).coerceAtLeast(1), u)
         for (pj in plan.projects) {
             val r = row(bp.projectRow(pj, items, today))
             r.setOnClickPendingIntent(R.id.img_root, projectPI(ctx, pj))
             rv.addView(R.id.list, r)
+            val task = plan.projectTasks[pj.id]
+            val sub = row(if (task != null) bpIndent.itemRow(task, today) else bpIndent.textRow("남은 할 일 없음"))
+            sub.setViewPadding(R.id.img_root, indent, 0, 0, 0)
+            if (task != null && task.item.type == ItemType.TODO) {
+                sub.setViewVisibility(R.id.img_tap, View.VISIBLE)
+                sub.setOnClickPendingIntent(R.id.img_tap, togglePI(ctx, task.item.id))
+            }
+            rv.addView(R.id.list, sub)
+        }
+        if (plan.projects.isNotEmpty() && (plan.highlight != null || plan.rest.isNotEmpty())) {
+            rv.addView(R.id.list, sepRow(ctx, ink))
         }
         plan.highlight?.let { rv.addView(R.id.list, row(bp.highlight(it, today))) }
         if (plan.rest.isEmpty() && plan.highlight == null && plan.projects.isEmpty()) {
@@ -334,6 +401,16 @@ object WidgetRenderer {
             row.setTextColor(R.id.pj_dday, if (left in 0..7) ink.sun else Palette.readable(col, ink))
             row.setOnClickPendingIntent(R.id.pj_root, projectPI(ctx, p))
             rv.addView(R.id.list, row)
+            val indent = (22 * d).toInt()
+            val task = plan.projectTasks[p.id]
+            rv.addView(
+                R.id.list,
+                if (task != null) itemRow(ctx, task, theme, ink, today, indent)
+                else textRow(ctx, "남은 할 일 없음", ink.muted, indent),
+            )
+        }
+        if (plan.projects.isNotEmpty() && (plan.highlight != null || visible.isNotEmpty())) {
+            rv.addView(R.id.list, sepRow(ctx, ink))
         }
         plan.highlight?.let { hl ->
             val c = Palette.itemColor(hl.item, theme)
@@ -357,25 +434,7 @@ object WidgetRenderer {
             rv.addView(R.id.list, empty)
         } else {
             for (e in visible.take(maxRows)) {
-                val item = e.item
-                val row = RemoteViews(pkg, R.layout.widget_item)
-                val ci = Palette.itemColor(item, theme)
-                val faded = item.type == ItemType.TODO && item.done
-                if (item.type == ItemType.DDAY) {
-                    row.setTextViewText(R.id.item_badge, Fmt.dday(e.date, today))
-                    row.setTextColor(R.id.item_badge, Palette.onColor(ci, theme))
-                    row.setViewVisibility(R.id.item_pill, View.VISIBLE)
-                    row.setInt(R.id.item_pill, "setColorFilter", ci)
-                } else {
-                    row.setTextViewText(R.id.item_badge, if (item.done) "✓" else "○")
-                    row.setTextColor(R.id.item_badge, if (item.done) ink.muted else ci)
-                    row.setOnClickPendingIntent(R.id.item_badge, togglePI(ctx, item.id))
-                }
-                row.setTextViewText(R.id.item_date, if (e.overdue) "밀림 " + Fmt.shortDate(e.date) else Fmt.shortDate(e.date))
-                row.setTextViewText(R.id.item_title, Fmt.titleWithEmoji(item))
-                row.setTextColor(R.id.item_title, if (faded) ink.muted else ink.primary)
-                row.setTextColor(R.id.item_date, if (faded) ink.muted else if (e.overdue) ink.sun else ink.secondary)
-                rv.addView(R.id.list, row)
+                rv.addView(R.id.list, itemRow(ctx, e, theme, ink, today))
             }
             if (visible.size > maxRows) {
                 val more = RemoteViews(pkg, R.layout.widget_more)
