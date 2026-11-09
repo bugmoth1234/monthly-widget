@@ -16,7 +16,6 @@ import java.time.YearMonth
  * 기본 위젯 레이아웃과 같은 크기(dp)를 쓰도록 맞춰 두었습니다. u = 1dp의 픽셀 수.
  */
 object BodyPainter {
-    private val WEEKDAYS = arrayOf("일", "월", "화", "수", "목", "금", "토")
 
     fun draw(
         ctx: Context, theme: Theme, items: List<Item>, ym: YearMonth, today: LocalDate,
@@ -49,9 +48,10 @@ object BodyPainter {
 
         // 요일
         y += 4 * u
+        val labels = Fmt.weekLabels(theme)
         for (i in 0 until 7) {
             val color = if (i == 0) ink.sun else if (i == 6) ink.sat else ink.secondary
-            centerText(WEEKDAYS[i], (i + 0.5f) * colW, y + 8 * u, 11 * u * k, color)
+            centerText(labels[i], (i + 0.5f) * colW, y + 8 * u, (if (theme.weekdayEn) 9.5f else 11f) * u * k, color)
         }
         y += 16 * u
 
@@ -108,17 +108,53 @@ object BodyPainter {
         y += 7 * u
 
         // 목록
-        val entries = Store.entries(items, ym, today)
+        val plan = WidgetRenderer.listPlan(items, ym, today, theme)
+        val entries = plan.rest
         val rowH = 21 * u * k
+
+        // 가장 가까운 디데이 강조 카드
+        plan.highlight?.let { hl ->
+            val col = Palette.itemColor(hl.item, theme)
+            val cardH = 42 * u * k
+            if (y + cardH <= h) {
+                fill.color = (col and 0x00FFFFFF) or (46 shl 24)
+                c.drawRoundRect(RectF(0f, y, w.toFloat(), y + cardH), 12 * u, 12 * u, fill)
+                val mid = y + cardH / 2f
+                centerText(hl.item.emoji.trim().ifEmpty { "★" }, 22 * u, mid, 20 * u * k, col)
+                p.textAlign = Paint.Align.RIGHT
+                p.textSize = 20 * u * k
+                p.isFakeBoldText = true
+                p.color = col
+                var fm = p.fontMetrics
+                val dd = Fmt.dday(hl.date, today)
+                c.drawText(dd, w - 10 * u, mid - (fm.ascent + fm.descent) / 2f, p)
+                val ddW = p.measureText(dd)
+                p.textAlign = Paint.Align.LEFT
+                val tx = 44 * u
+                val avail = w - tx - ddW - 18 * u
+                p.textSize = 13 * u * k
+                p.color = ink.primary
+                fm = p.fontMetrics
+                c.drawText(Fonts.ellipsize(hl.item.title, p, avail), tx, mid - 7 * u * k - (fm.ascent + fm.descent) / 2f, p)
+                p.isFakeBoldText = false
+                p.textSize = 11 * u * k
+                p.color = ink.secondary
+                fm = p.fontMetrics
+                val sub = Fmt.monthDay(hl.date) + (if (hl.item.yearly) " · 매년" else "")
+                c.drawText(Fonts.ellipsize(sub, p, avail), tx, mid + 8 * u * k - (fm.ascent + fm.descent) / 2f, p)
+                y += cardH + 4 * u
+            }
+        }
+
         p.textAlign = Paint.Align.LEFT
-        if (entries.isEmpty()) {
+        if (entries.isEmpty() && plan.highlight == null) {
             p.textSize = 12 * u * k
             p.color = ink.secondary
             val fm = p.fontMetrics
             c.drawText("일정이 없어요. 눌러서 추가해 보세요.", 0f, y + rowH / 2f - (fm.ascent + fm.descent) / 2f, p)
         }
         var shownCount = 0
-        for (e in entries.take(WidgetRenderer.MAX_LIST)) {
+        for (e in entries.take(plan.maxRows)) {
             if (y + rowH > h) break
             val item = e.item
             val ci = Palette.itemColor(item, theme)

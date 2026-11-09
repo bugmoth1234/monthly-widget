@@ -46,6 +46,10 @@ data class Theme(
     val bodyFontScale: Int = 100, // 글꼴 파일을 쓸 때 글자 크기 %
     val customAccent: Int = 0,    // 직접 고른 포인트 색 (0이면 팔레트 색 사용)
     val bleed: Int = 0,           // 카드 바깥 투명 여백 dp (스티커가 삐져나올 공간)
+    val titleStyle: Int = 0,      // 0 "2026년 11월", 1 "November 2026", 2 "11 NOVEMBER"
+    val weekdayEn: Boolean = false,
+    val border: Int = 0,          // 0 없음, 1 선, 2 스티치(점선)
+    val highlight: Boolean = true, // 가장 가까운 디데이를 크게
 )
 
 object Store {
@@ -143,6 +147,10 @@ object Store {
                 bodyFontScale = o.optInt("bodyFontScale", 100),
                 customAccent = o.optInt("customAccent", 0),
                 bleed = o.optInt("bleed", 0),
+                titleStyle = o.optInt("titleStyle", 0),
+                weekdayEn = o.optBoolean("weekdayEn", false),
+                border = o.optInt("border", 0),
+                highlight = o.optBoolean("highlight", true),
             )
         } catch (e: Exception) {
             Theme()
@@ -167,6 +175,8 @@ object Store {
             .put("headerDim", t.headerDim).put("headerLarge", t.headerLarge)
             .put("titleFont", t.titleFont).put("bodyFont", t.bodyFont).put("bodyFontScale", t.bodyFontScale)
             .put("customAccent", t.customAccent).put("bleed", t.bleed)
+            .put("titleStyle", t.titleStyle).put("weekdayEn", t.weekdayEn)
+            .put("border", t.border).put("highlight", t.highlight)
         prefs(ctx).edit().putString(KEY_THEME, o.toString()).apply()
     }
 
@@ -201,6 +211,13 @@ object Store {
         return if (d.isBefore(item.date)) item.date else d
     }
 
+    /** 오늘 이후 가장 가까운 디데이 (없으면 null) */
+    fun nearestDday(all: List<Item>, today: LocalDate): Entry? =
+        all.filter { it.type == ItemType.DDAY }
+            .map { Entry(it, nextOccurrence(it, today)) }
+            .filter { !it.date.isBefore(today) }
+            .minWithOrNull(compareBy<Entry>({ it.date }, { it.item.id }))
+
     /** 그 달의 일정 + 그 뒤로 다가오는 디데이. 완료한 할 일은 맨 뒤로. */
     fun entries(all: List<Item>, ym: YearMonth, today: LocalDate): List<Entry> {
         val monthEnd = ym.atEndOfMonth()
@@ -224,6 +241,44 @@ object Store {
 
 object Fmt {
     private val weekdays = arrayOf("월", "화", "수", "목", "금", "토", "일")
+    private val EN_MONTHS = arrayOf(
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    )
+    val WEEK_KO = arrayOf("일", "월", "화", "수", "목", "금", "토")
+    val WEEK_EN = arrayOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
+
+    fun weekLabels(theme: Theme) = if (theme.weekdayEn) WEEK_EN else WEEK_KO
+
+    /** 글꼴 그림용 (꾸밈 없는 글자) */
+    fun titlePlain(ym: YearMonth, style: Int): String = when (style) {
+        1 -> "${EN_MONTHS[ym.monthValue - 1]} ${ym.year}"
+        2 -> "${ym.monthValue}  ${EN_MONTHS[ym.monthValue - 1].uppercase()}"
+        else -> month(ym)
+    }
+
+    /** 위젯 제목 (숫자를 크게·포인트 색으로 꾸밈) */
+    fun titleStyled(ym: YearMonth, style: Int, accent: Int): CharSequence {
+        val text = titlePlain(ym, style)
+        val s = android.text.SpannableString(text)
+        val flag = android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        when (style) {
+            1 -> {
+                val cut = text.lastIndexOf(' ')
+                s.setSpan(android.text.style.RelativeSizeSpan(0.75f), cut, text.length, flag)
+            }
+            2 -> {
+                val cut = text.indexOf(' ')
+                s.setSpan(android.text.style.RelativeSizeSpan(1.7f), 0, cut, flag)
+                s.setSpan(android.text.style.ForegroundColorSpan(accent), 0, cut, flag)
+                s.setSpan(android.text.style.RelativeSizeSpan(0.8f), cut, text.length, flag)
+            }
+        }
+        return s
+    }
+
+    fun monthDay(date: LocalDate): String =
+        "${date.monthValue}월 ${date.dayOfMonth}일 (${weekday(date.dayOfWeek)})"
 
     fun dday(date: LocalDate, today: LocalDate): String {
         val d = ChronoUnit.DAYS.between(today, date)

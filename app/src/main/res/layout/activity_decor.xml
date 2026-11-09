@@ -37,6 +37,25 @@
         android:textColor="@color/text_secondary"
         android:textSize="13sp" />
 
+    <TextView style="@style/SectionLabel" android:text="추천 테마" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="누르면 색·배경·테두리·제목 모양이 한 번에 바뀌어요. 스티커와 사진, 글꼴은 그대로예요."
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp" />
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:scrollbars="none">
+        <LinearLayout
+            android:id="@+id/preset_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -140,6 +159,43 @@
     <SeekBar android:id="@+id/seek_sat" style="@style/ColorBar" android:max="100" />
     <TextView style="@style/SliderLabel" android:id="@+id/val_label" android:text="밝기(명도)" />
     <SeekBar android:id="@+id/seek_val" style="@style/ColorBar" android:max="100" />
+
+    <TextView style="@style/SectionLabel" android:text="스타일" />
+    <TextView style="@style/SliderLabel" android:text="제목 모양" />
+    <RadioGroup
+        android:id="@+id/title_style"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <RadioButton android:id="@+id/rb_title_ko" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="2026년 11월" />
+        <RadioButton android:id="@+id/rb_title_en" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="November" />
+        <RadioButton android:id="@+id/rb_title_big" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="큰 숫자" />
+    </RadioGroup>
+    <TextView style="@style/SliderLabel" android:text="요일 표시" />
+    <RadioGroup
+        android:id="@+id/weekday_lang"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <RadioButton android:id="@+id/rb_week_ko" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="일 월 화" />
+        <RadioButton android:id="@+id/rb_week_en" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="SUN MON TUE" />
+    </RadioGroup>
+    <TextView style="@style/SliderLabel" android:text="테두리" />
+    <RadioGroup
+        android:id="@+id/border_style"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <RadioButton android:id="@+id/rb_border_none" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="없음" />
+        <RadioButton android:id="@+id/rb_border_line" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="얇은 선" />
+        <RadioButton android:id="@+id/rb_border_stitch" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="스티치 (바느질)" />
+    </RadioGroup>
+    <CheckBox
+        android:id="@+id/cb_highlight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="가장 가까운 디데이를 카드로 크게 보여주기" />
 
     <TextView style="@style/SectionLabel" android:text="글꼴" />
     <TextView

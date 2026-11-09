@@ -132,8 +132,28 @@ object Decor {
         val p = Paint(Paint.ANTI_ALIAS_FLAG)
         p.shader = BitmapShader(fill, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
         p.alpha = theme.bgAlpha.coerceIn(0, 100) * 255 / 100
-        Canvas(out).drawRoundRect(RectF(inset, inset, w - inset, h - inset), radius, radius, p)
+        val oc = Canvas(out)
+        oc.drawRoundRect(RectF(inset, inset, w - inset, h - inset), radius, radius, p)
         fill.recycle()
+
+        // 테두리: 1 = 얇은 선, 2 = 바느질 같은 스티치 점선
+        if (theme.border > 0) {
+            val accent = Palette.accentColor(theme)
+            val bp = Paint(Paint.ANTI_ALIAS_FLAG)
+            bp.style = Paint.Style.STROKE
+            bp.strokeWidth = 1.6f * u
+            if (theme.border == 2) {
+                bp.color = (accent and 0x00FFFFFF) or (0xCC shl 24)
+                bp.strokeCap = Paint.Cap.ROUND
+                bp.pathEffect = android.graphics.DashPathEffect(floatArrayOf(5f * u, 4f * u), 0f)
+                val s = 5f * u
+                oc.drawRoundRect(RectF(inset + s, inset + s, w - inset - s, h - inset - s), radius - s, radius - s, bp)
+            } else {
+                bp.color = (accent and 0x00FFFFFF) or (0x99 shl 24)
+                val s = 0.8f * u
+                oc.drawRoundRect(RectF(inset + s, inset + s, w - inset - s, h - inset - s), radius, radius, bp)
+            }
+        }
         return out
     }
 

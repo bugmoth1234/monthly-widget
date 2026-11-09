@@ -76,6 +76,16 @@ object WidgetRenderer {
         }
     }
 
+    class ListPlan(val highlight: Entry?, val rest: List<Entry>, val maxRows: Int)
+
+    /** 목록 구성: 강조할 디데이 1개 + 나머지 (강조 카드가 있으면 줄 수를 줄임) */
+    fun listPlan(items: List<Item>, ym: YearMonth, today: LocalDate, theme: Theme): ListPlan {
+        val hl = if (theme.highlight) Store.nearestDday(items, today) else null
+        val all = Store.entries(items, ym, today)
+        val rest = if (hl == null) all else all.filter { it.item.id != hl.item.id }
+        return ListPlan(hl, rest, if (hl == null) MAX_LIST else 3)
+    }
+
     fun displayMonth(ctx: Context): YearMonth =
         YearMonth.from(LocalDate.now()).plusMonths(Store.getOffset(ctx).toLong())
 
@@ -105,7 +115,7 @@ object WidgetRenderer {
             val th = (30 * u).toInt()
             if (tw > 0 && th > 0) {
                 val color = if (hasHeader) Color.WHITE else ink.primary
-                rv.setImageViewBitmap(R.id.title_img, Fonts.drawTitle(Fmt.month(ym), titleTf, tw, th, color, 19 * u))
+                rv.setImageViewBitmap(R.id.title_img, Fonts.drawTitle(Fmt.titlePlain(ym, theme.titleStyle), titleTf, tw, th, color, 19 * u))
                 rv.setViewVisibility(R.id.title, View.GONE)
                 rv.setViewVisibility(R.id.title_img, View.VISIBLE)
             }
@@ -139,7 +149,6 @@ object WidgetRenderer {
         val rv = RemoteViews(pkg, R.layout.widget_month)
         val pad = ((12 + theme.bleed.coerceIn(0, 60)) * d).toInt()
         rv.setViewPadding(R.id.content, pad, pad, pad, pad)
-        rv.setTextViewText(R.id.title, Fmt.month(ym))
 
         // 제목 자리: 이미지가 있으면 흰 글씨 + 높이 조절
         val hasHeader = Decor.headerFile(theme, ym) != null
@@ -148,6 +157,7 @@ object WidgetRenderer {
         val hPad = if (hasHeader) (4 * d).toInt() else 0
         rv.setViewPadding(R.id.header_row, hPad, vPad, hPad, vPad)
         rv.setViewVisibility(R.id.header_img, if (hasHeader) View.VISIBLE else View.GONE)
+        rv.setTextViewText(R.id.title, Fmt.titleStyled(ym, theme.titleStyle, if (hasHeader) Color.WHITE else accent))
         rv.setTextColor(R.id.title, if (hasHeader) Color.WHITE else ink.primary)
         rv.setTextColor(R.id.btn_prev, if (hasHeader) Color.WHITE else ink.secondary)
         rv.setTextColor(R.id.btn_next, if (hasHeader) Color.WHITE else ink.secondary)
@@ -158,7 +168,10 @@ object WidgetRenderer {
             rv.setTextViewText(R.id.caption, theme.caption)
             rv.setTextColor(R.id.caption, ink.secondary)
         }
+        val labels = Fmt.weekLabels(theme)
         for (i in WEEKDAY_IDS.indices) {
+            rv.setTextViewText(WEEKDAY_IDS[i], labels[i])
+            if (theme.weekdayEn) rv.setTextViewTextSize(WEEKDAY_IDS[i], android.util.TypedValue.COMPLEX_UNIT_SP, 9.5f)
             rv.setTextColor(WEEKDAY_IDS[i], if (i == 0) ink.sun else if (i == 6) ink.sat else ink.secondary)
         }
         rv.setInt(R.id.divider, "setBackgroundColor", ink.divider)
@@ -215,14 +228,31 @@ object WidgetRenderer {
 
         // ---------- 목록 ----------
         rv.removeAllViews(R.id.list)
-        val visible = Store.entries(items, ym, today)
-        if (visible.isEmpty()) {
+        val plan = listPlan(items, ym, today, theme)
+        val visible = plan.rest
+        val maxRows = plan.maxRows
+        plan.highlight?.let { hl ->
+            val c = Palette.itemColor(hl.item, theme)
+            val card = RemoteViews(pkg, R.layout.widget_highlight)
+            card.setInt(R.id.hl_bg, "setColorFilter", c)
+            card.setInt(R.id.hl_bg, "setImageAlpha", 46)
+            card.setTextViewText(R.id.hl_icon, hl.item.emoji.trim().ifEmpty { "★" })
+            card.setTextColor(R.id.hl_icon, c)
+            card.setTextViewText(R.id.hl_title, hl.item.title)
+            card.setTextColor(R.id.hl_title, ink.primary)
+            card.setTextViewText(R.id.hl_sub, Fmt.monthDay(hl.date) + (if (hl.item.yearly) " · 매년" else ""))
+            card.setTextColor(R.id.hl_sub, ink.secondary)
+            card.setTextViewText(R.id.hl_dday, Fmt.dday(hl.date, today))
+            card.setTextColor(R.id.hl_dday, c)
+            rv.addView(R.id.list, card)
+        }
+        if (visible.isEmpty() && plan.highlight == null) {
             val empty = RemoteViews(pkg, R.layout.widget_more)
             empty.setTextViewText(R.id.more_text, "일정이 없어요. 눌러서 추가해 보세요.")
             empty.setTextColor(R.id.more_text, ink.secondary)
             rv.addView(R.id.list, empty)
         } else {
-            for (e in visible.take(MAX_LIST)) {
+            for (e in visible.take(maxRows)) {
                 val item = e.item
                 val row = RemoteViews(pkg, R.layout.widget_item)
                 val ci = Palette.itemColor(item, theme)
@@ -242,9 +272,9 @@ object WidgetRenderer {
                 row.setTextColor(R.id.item_date, if (faded) ink.muted else ink.secondary)
                 rv.addView(R.id.list, row)
             }
-            if (visible.size > MAX_LIST) {
+            if (visible.size > maxRows) {
                 val more = RemoteViews(pkg, R.layout.widget_more)
-                more.setTextViewText(R.id.more_text, "외 ${visible.size - MAX_LIST}개 더 있음")
+                more.setTextViewText(R.id.more_text, "외 ${visible.size - maxRows}개 더 있음")
                 more.setTextColor(R.id.more_text, ink.secondary)
                 rv.addView(R.id.list, more)
             }

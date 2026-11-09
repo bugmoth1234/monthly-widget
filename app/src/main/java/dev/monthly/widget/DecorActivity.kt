@@ -119,6 +119,8 @@ class DecorActivity : Activity() {
         }
 
         setupAccentPicker()
+        setupStyle()
+        setupPresets()
         Swatches.fill(findViewById<LinearLayout>(R.id.bgcolor_row), Palette.bgColors, decor.bgColor, false) {
             decor = decor.copy(bgColor = it, bgMode = 1)
             syncBgRadio()
@@ -436,6 +438,93 @@ class DecorActivity : Activity() {
         hueBar.setOnSeekBarChangeListener(listener)
         satBar.setOnSeekBarChangeListener(listener)
         valBar.setOnSeekBarChangeListener(listener)
+    }
+
+    // ---------- 스타일 ----------
+    private fun setupStyle() {
+        fun radio(groupId: Int, ids: IntArray, current: Int, apply: (Int) -> Unit) {
+            val g = findViewById<RadioGroup>(groupId)
+            g.check(ids[current.coerceIn(0, ids.size - 1)])
+            g.setOnCheckedChangeListener { _, id ->
+                val i = ids.indexOf(id)
+                if (i >= 0) {
+                    apply(i)
+                    save()
+                }
+            }
+        }
+        radio(R.id.title_style, intArrayOf(R.id.rb_title_ko, R.id.rb_title_en, R.id.rb_title_big), decor.titleStyle) {
+            decor = decor.copy(titleStyle = it)
+        }
+        radio(R.id.weekday_lang, intArrayOf(R.id.rb_week_ko, R.id.rb_week_en), if (decor.weekdayEn) 1 else 0) {
+            decor = decor.copy(weekdayEn = it == 1)
+        }
+        radio(R.id.border_style, intArrayOf(R.id.rb_border_none, R.id.rb_border_line, R.id.rb_border_stitch), decor.border) {
+            decor = decor.copy(border = it)
+        }
+        val cb = findViewById<android.widget.CheckBox>(R.id.cb_highlight)
+        cb.isChecked = decor.highlight
+        cb.setOnCheckedChangeListener { _, checked ->
+            decor = decor.copy(highlight = checked)
+            save()
+        }
+    }
+
+    // ---------- 추천 테마 ----------
+    private class Preset(
+        val name: String, val accent: Int, val bgColor: Int, val bgAlpha: Int,
+        val textMode: Int, val border: Int, val titleStyle: Int, val weekdayEn: Boolean,
+    )
+
+    private val presets = listOf(
+        Preset("라벤더 드림", 0xFF9B7BEA.toInt(), 3, 95, 0, 2, 2, true),
+        Preset("딸기우유", 0xFFF06292.toInt(), 2, 95, 0, 2, 2, true),
+        Preset("크림 다이어리", 0xFFB08968.toInt(), 1, 97, 0, 1, 0, false),
+        Preset("민트 소다", 0xFF26A69A.toInt(), 4, 95, 0, 1, 1, true),
+        Preset("레몬 스티커", 0xFFF5A300.toInt(), 6, 95, 0, 2, 2, false),
+        Preset("미니멀 화이트", 0xFF222222.toInt(), 0, 100, 1, 0, 1, true),
+        Preset("모노 나이트", 0xFFC77DFF.toInt(), 7, 92, 2, 0, 2, true),
+        Preset("투명 글래스", 0xFFFFFFFF.toInt(), 0, 22, 2, 1, 1, true),
+        Preset("크리스마스", 0xFFE5484D.toInt(), 8, 95, 2, 2, 2, true),
+    )
+
+    private fun setupPresets() {
+        val row = findViewById<LinearLayout>(R.id.preset_row)
+        val d = resources.displayMetrics.density
+        for (pr in presets) {
+            val bg = Palette.bg(pr.bgColor)
+            val chip = TextView(this)
+            chip.text = "●  " + pr.name
+            chip.textSize = 13f
+            val light = android.graphics.Color.luminance(bg) < 0.35f || pr.bgAlpha < 40
+            chip.setTextColor(if (light) android.graphics.Color.WHITE else 0xFF222222.toInt())
+            val span = android.text.SpannableString(chip.text)
+            span.setSpan(android.text.style.ForegroundColorSpan(pr.accent), 0, 1, 0)
+            chip.text = span
+            chip.setPadding((14 * d).toInt(), (9 * d).toInt(), (14 * d).toInt(), (9 * d).toInt())
+            val shape = android.graphics.drawable.GradientDrawable()
+            shape.cornerRadius = 18 * d
+            shape.setColor(if (pr.bgAlpha < 40) 0xFF3B5B7A.toInt() else bg)
+            if (pr.border == 2) {
+                shape.setStroke((1.5f * d).toInt(), pr.accent, 5 * d, 3 * d)
+            } else {
+                shape.setStroke((1 * d).toInt(), getColor(R.color.text_muted))
+            }
+            chip.background = shape
+            val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            lp.setMargins(0, 0, (8 * d).toInt(), 0)
+            chip.layoutParams = lp
+            chip.setOnClickListener {
+                decor = decor.copy(
+                    customAccent = pr.accent, bgMode = 1, bgColor = pr.bgColor, bgAlpha = pr.bgAlpha,
+                    textMode = pr.textMode, border = pr.border, titleStyle = pr.titleStyle, weekdayEn = pr.weekdayEn,
+                )
+                Store.saveTheme(this, decor)
+                WidgetRenderer.updateAll(this)
+                recreate() // 아래 설정 화면도 새 값으로 다시 그림
+            }
+            row.addView(chip)
+        }
     }
 
     // ---------- 카드 바깥 여백 ----------
