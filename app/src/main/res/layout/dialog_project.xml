@@ -1,0 +1,122 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="12dp">
+
+    <EditText
+        android:id="@+id/pj_in_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="프로젝트 이름 (예: 회지 1권, 커뮤 오픈)"
+        android:inputType="text"
+        android:maxLines="1" />
+
+    <Button
+        android:id="@+id/pj_in_deadline"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="start|center_vertical"
+        android:textSize="16sp" />
+
+    <TextView style="@style/SectionLabel" android:text="아이콘" />
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+        <LinearLayout
+            android:id="@+id/pj_in_emoji_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+    <EditText
+        android:id="@+id/pj_in_emoji"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="직접 입력"
+        android:inputType="text"
+        android:maxLength="8"
+        android:maxLines="1" />
+
+    <TextView style="@style/SectionLabel" android:text="색" />
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+        <LinearLayout
+            android:id="@+id/pj_in_color_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
+    <TextView style="@style/SectionLabel" android:text="작업 사이트 (선택)" />
+    <EditText
+        android:id="@+id/pj_in_link"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="예: my-zine.vercel.app"
+        android:inputType="textUri"
+        android:maxLines="1" />
+
+    <TextView style="@style/SectionLabel" android:text="진행률" />
+    <RadioGroup
+        android:id="@+id/pj_in_mode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <RadioButton android:id="@+id/rb_mode_auto" android:layout_width="wrap_content" android:layout_height="wrap_content" android:checked="true" android:text="체크리스트 완료 비율로 자동 계산" />
+        <RadioButton android:id="@+id/rb_mode_manual" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="분량 직접 입력 (예: 7 / 10 꼭지)" />
+    </RadioGroup>
+    <LinearLayout
+        android:id="@+id/pj_in_manual_box"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone">
+        <EditText
+            android:id="@+id/pj_in_total"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="목표 (예: 10)"
+            android:inputType="number"
+            android:maxLength="6" />
+        <EditText
+            android:id="@+id/pj_in_unit"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:hint="단위 (예: 꼭지, 쪽)"
+            android:inputType="text"
+            android:maxLength="8" />
+    </LinearLayout>
+
+    <TextView android:id="@+id/pj_in_template_label" style="@style/SectionLabel" android:text="체크리스트 초안 (마감일에서 거꾸로 날짜 계산)" />
+    <RadioGroup
+        android:id="@+id/pj_in_template"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <RadioButton android:id="@+id/rb_tpl_none" android:layout_width="wrap_content" android:layout_height="wrap_content" android:checked="true" android:text="비워 두기 (직접 추가)" />
+        <RadioButton android:id="@+id/rb_tpl_zine" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="회지: 플롯 → 초고 → 퇴고 → 표지 → 조판 → 입고 → 행사" />
+        <RadioButton android:id="@+id/rb_tpl_commu" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="커뮤: 세계관 → 시스템 → 신청서 → 홍보 → 모집 → 발표 → 오픈" />
+    </RadioGroup>
+    <TextView
+        android:id="@+id/pj_in_template_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="8dp"
+        android:text="초안은 만든 뒤에 단계 이름·날짜를 고치거나 지울 수 있어요."
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp" />
+</LinearLayout>
+</ScrollView>

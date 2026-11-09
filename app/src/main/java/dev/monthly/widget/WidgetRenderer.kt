@@ -76,14 +76,49 @@ object WidgetRenderer {
         }
     }
 
-    class ListPlan(val highlight: Entry?, val rest: List<Entry>, val maxRows: Int)
+    class ListPlan(val projects: List<Project>, val highlight: Entry?, val rest: List<Entry>, val maxRows: Int)
 
-    /** 목록 구성: 강조할 디데이 1개 + 나머지 (강조 카드가 있으면 줄 수를 줄임) */
-    fun listPlan(items: List<Item>, ym: YearMonth, today: LocalDate, theme: Theme): ListPlan {
+    /** 목록 구성: 프로젝트(최대 2) + 강조할 디데이 1개 + 나머지 일정. 위젯 공간에 맞게 줄 수 조절. */
+    fun listPlan(ctx: Context, items: List<Item>, ym: YearMonth, today: LocalDate, theme: Theme): ListPlan {
+        val projects = if (theme.showProjects) {
+            Store.loadProjects(ctx)
+                .sortedWith(compareBy<Project>({ it.deadline.isBefore(today) }, { it.deadline }))
+                .take(2)
+        } else {
+            emptyList()
+        }
         val hl = if (theme.highlight) Store.nearestDday(items, today) else null
-        val all = Store.entries(items, ym, today)
+        val all = Store.entries(items, ym, today, Store.carryOver(ctx))
         val rest = if (hl == null) all else all.filter { it.item.id != hl.item.id }
-        return ListPlan(hl, rest, if (hl == null) MAX_LIST else 3)
+        val used = projects.size + (if (hl != null) 2 else 0)
+        return ListPlan(projects, hl, rest, maxOf(1, MAX_LIST - used))
+    }
+
+    /** 위젯의 ○를 누르면 그 할 일을 완료/취소 */
+    private fun togglePI(ctx: Context, id: Long): PendingIntent =
+        PendingIntent.getBroadcast(
+            ctx, (id xor (id ushr 32)).toInt(),
+            Intent(ctx, MonthWidgetProvider::class.java)
+                .setAction(MonthWidgetProvider.ACTION_TOGGLE)
+                .setData(android.net.Uri.parse("monthly://toggle/$id"))
+                .putExtra(MonthWidgetProvider.EXTRA_ID, id),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+    /** 프로젝트 줄을 누르면: 작업 사이트가 있으면 사이트, 없으면 앱의 프로젝트 화면 */
+    private fun projectPI(ctx: Context, p: Project): PendingIntent {
+        val intent = if (p.link.isNotBlank()) {
+            Intent(Intent.ACTION_VIEW, android.net.Uri.parse(Links.normalize(p.link)))
+        } else {
+            Intent(ctx, ProjectDetailActivity::class.java)
+                .setData(android.net.Uri.parse("monthly://project/${p.id}"))
+                .putExtra(ProjectDetailActivity.EXTRA_ID, p.id)
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return PendingIntent.getActivity(
+            ctx, 5000 + (p.id % 100000).toInt(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     }
 
     fun displayMonth(ctx: Context): YearMonth =
@@ -228,9 +263,25 @@ object WidgetRenderer {
 
         // ---------- 목록 ----------
         rv.removeAllViews(R.id.list)
-        val plan = listPlan(items, ym, today, theme)
+        val plan = listPlan(ctx, items, ym, today, theme)
         val visible = plan.rest
         val maxRows = plan.maxRows
+        for (p in plan.projects) {
+            val row = RemoteViews(pkg, R.layout.widget_project)
+            val col = Palette.color(p.color)
+            val pct = Store.percent(p, items)
+            val left = java.time.temporal.ChronoUnit.DAYS.between(today, p.deadline)
+            row.setTextViewText(R.id.pj_icon, p.emoji.trim().ifEmpty { "📁" })
+            row.setTextViewText(R.id.pj_name, p.name)
+            row.setTextColor(R.id.pj_name, ink.primary)
+            row.setImageViewBitmap(R.id.pj_bar, Decor.progressBar((54 * d).toInt(), (6 * d).toInt(), pct, col, ink.divider))
+            row.setTextViewText(R.id.pj_pct, "$pct%")
+            row.setTextColor(R.id.pj_pct, ink.secondary)
+            row.setTextViewText(R.id.pj_dday, Fmt.dday(p.deadline, today))
+            row.setTextColor(R.id.pj_dday, if (left in 0..7) ink.sun else col)
+            row.setOnClickPendingIntent(R.id.pj_root, projectPI(ctx, p))
+            rv.addView(R.id.list, row)
+        }
         plan.highlight?.let { hl ->
             val c = Palette.itemColor(hl.item, theme)
             val card = RemoteViews(pkg, R.layout.widget_highlight)
@@ -246,7 +297,7 @@ object WidgetRenderer {
             card.setTextColor(R.id.hl_dday, c)
             rv.addView(R.id.list, card)
         }
-        if (visible.isEmpty() && plan.highlight == null) {
+        if (visible.isEmpty() && plan.highlight == null && plan.projects.isEmpty()) {
             val empty = RemoteViews(pkg, R.layout.widget_more)
             empty.setTextViewText(R.id.more_text, "일정이 없어요. 눌러서 추가해 보세요.")
             empty.setTextColor(R.id.more_text, ink.secondary)
@@ -265,11 +316,12 @@ object WidgetRenderer {
                 } else {
                     row.setTextViewText(R.id.item_badge, if (item.done) "✓" else "○")
                     row.setTextColor(R.id.item_badge, if (item.done) ink.muted else ci)
+                    row.setOnClickPendingIntent(R.id.item_badge, togglePI(ctx, item.id))
                 }
-                row.setTextViewText(R.id.item_date, Fmt.shortDate(e.date))
+                row.setTextViewText(R.id.item_date, if (e.overdue) "밀림 " + Fmt.shortDate(e.date) else Fmt.shortDate(e.date))
                 row.setTextViewText(R.id.item_title, Fmt.titleWithEmoji(item))
                 row.setTextColor(R.id.item_title, if (faded) ink.muted else ink.primary)
-                row.setTextColor(R.id.item_date, if (faded) ink.muted else ink.secondary)
+                row.setTextColor(R.id.item_date, if (faded) ink.muted else if (e.overdue) ink.sun else ink.secondary)
                 rv.addView(R.id.list, row)
             }
             if (visible.size > maxRows) {

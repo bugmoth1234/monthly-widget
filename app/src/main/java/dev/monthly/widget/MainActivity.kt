@@ -17,7 +17,12 @@ import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
+import android.view.Menu
+import android.view.MenuItem
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -25,6 +30,11 @@ class MainActivity : Activity() {
 
     companion object {
         const val EXTRA_MONTH = "month"
+        private const val REQ_BACKUP = 21
+        private const val REQ_RESTORE = 22
+        private const val MENU_BACKUP = 1
+        private const val MENU_RESTORE = 2
+        private const val MENU_CARRY = 3
     }
 
     private var ym: YearMonth = YearMonth.now()
@@ -52,6 +62,9 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.btn_next).setOnClickListener { ym = ym.plusMonths(1); refresh() }
         monthTitle.setOnClickListener { ym = YearMonth.now(); refresh() }
         findViewById<Button>(R.id.btn_add).setOnClickListener { showEditor(null) }
+        findViewById<Button>(R.id.btn_projects).setOnClickListener {
+            startActivity(Intent(this, ProjectsActivity::class.java))
+        }
         findViewById<Button>(R.id.btn_decor).setOnClickListener {
             startActivity(Intent(this, DecorActivity::class.java))
         }
@@ -77,7 +90,7 @@ class MainActivity : Activity() {
 
     private fun refresh() {
         monthTitle.text = Fmt.month(ym)
-        shown = Store.entries(items, ym, LocalDate.now())
+        shown = Store.entries(items, ym, LocalDate.now(), Store.carryOver(this))
         adapter.notifyDataSetChanged()
     }
 
@@ -145,6 +158,14 @@ class MainActivity : Activity() {
 
         Swatches.fill(colorRow, Palette.colors, color, true) { color = it }
 
+        // 프로젝트 고르기
+        val projects = Store.loadProjects(this)
+        val spinner = v.findViewById<Spinner>(R.id.input_project)
+        val names = listOf("없음") + projects.map { "${it.emoji.trim()} ${it.name}".trim() }
+        spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, names)
+        val pIndex = projects.indexOfFirst { it.id == (existing?.projectId ?: 0L) }
+        spinner.setSelection(if (pIndex >= 0) pIndex + 1 else 0)
+
         val builder = AlertDialog.Builder(this)
             .setTitle(if (existing == null) "새 일정" else "일정 수정")
             .setView(v)
@@ -167,8 +188,13 @@ class MainActivity : Activity() {
                 val type = if (rbDday.isChecked) ItemType.DDAY else ItemType.TODO
                 val emoji = emojiInput.text.toString().trim()
                 val yearly = type == ItemType.DDAY && yearlyBox.isChecked
-                val item = existing?.copy(date = date, title = title, type = type, color = color, emoji = emoji, yearly = yearly)
-                    ?: Item(System.currentTimeMillis(), date, title, type, false, color, emoji, yearly)
+                val sel = spinner.selectedItemPosition
+                val project = if (sel > 0) projects[sel - 1] else null
+                val projectId = project?.id ?: 0L
+                // 프로젝트 일정인데 색을 안 골랐으면 프로젝트 색을 따라감
+                val finalColor = if (color < 0 && project != null) project.color else color
+                val item = existing?.copy(date = date, title = title, type = type, color = finalColor, emoji = emoji, yearly = yearly, projectId = projectId)
+                    ?: Item(System.currentTimeMillis(), date, title, type, false, finalColor, emoji, yearly, projectId)
                 if (!yearly && YearMonth.from(date) != ym && type == ItemType.TODO) ym = YearMonth.from(date)
                 replace(item)
                 dialog.dismiss()
@@ -176,6 +202,78 @@ class MainActivity : Activity() {
         }
         dialog.show()
     }
+
+    // ---------- 메뉴: 백업 / 복원 / 이월 ----------
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menu.add(0, MENU_BACKUP, 0, "백업 파일 만들기")
+        menu.add(0, MENU_RESTORE, 1, "백업에서 복원하기")
+        menu.add(0, MENU_CARRY, 2, "못 한 일 이번 달로 이월").setCheckable(true).isChecked = Store.carryOver(this)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            MENU_BACKUP -> {
+                val i = Intent(Intent.ACTION_CREATE_DOCUMENT)
+                    .addCategory(Intent.CATEGORY_OPENABLE)
+                    .setType("application/zip")
+                    .putExtra(Intent.EXTRA_TITLE, "이번달위젯_백업_${LocalDate.now()}.zip")
+                startActivityForResult(i, REQ_BACKUP)
+            }
+            MENU_RESTORE -> {
+                val i = Intent(Intent.ACTION_OPEN_DOCUMENT)
+                    .addCategory(Intent.CATEGORY_OPENABLE)
+                    .setType("*/*")
+                startActivityForResult(i, REQ_RESTORE)
+            }
+            MENU_CARRY -> {
+                val v = !Store.carryOver(this)
+                Store.setCarryOver(this, v)
+                item.isChecked = v
+                WidgetRenderer.updateAll(this)
+                refresh()
+            }
+            else -> return super.onOptionsItemSelected(item)
+        }
+        return true
+    }
+
+    @Deprecated("단순 구현")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        val uri = data?.data ?: return
+        if (resultCode != RESULT_OK) return
+        if (requestCode == REQ_BACKUP) {
+            Thread {
+                val ok = Backup.export(this, uri)
+                runOnUiThread { toast(if (ok) "백업 파일을 저장했어요" else "백업에 실패했어요") }
+            }.start()
+        } else if (requestCode == REQ_RESTORE) {
+            AlertDialog.Builder(this)
+                .setTitle("백업에서 복원")
+                .setMessage("지금 있는 일정·프로젝트·꾸미기 설정이 백업 내용으로 바뀌어요. 계속할까요?")
+                .setPositiveButton("복원") { _, _ ->
+                    Thread {
+                        val ok = Backup.import(this, uri)
+                        runOnUiThread {
+                            if (ok) {
+                                items = Store.load(this)
+                                widgetTheme = Store.loadTheme(this)
+                                WidgetRenderer.updateAll(this)
+                                refresh()
+                                toast("복원했어요")
+                            } else {
+                                toast("백업 파일을 읽지 못했어요")
+                            }
+                        }
+                    }.start()
+                }
+                .setNegativeButton("취소", null)
+                .show()
+        }
+    }
+
+    private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     private inner class ItemAdapter : BaseAdapter() {
         override fun getCount() = shown.size
@@ -193,7 +291,8 @@ class MainActivity : Activity() {
             val date = view.findViewById<TextView>(R.id.row_date)
 
             title.text = Fmt.titleWithEmoji(item)
-            date.text = Fmt.longDate(entry.date) + (if (item.yearly) "  · 매년" else "")
+            date.text = (if (entry.overdue) "밀림 · " else "") + Fmt.longDate(entry.date) + (if (item.yearly) "  · 매년" else "")
+            date.setTextColor(getColor(if (entry.overdue) R.color.sunday else R.color.text_secondary))
             check.setOnCheckedChangeListener(null)
 
             if (item.type == ItemType.DDAY) {

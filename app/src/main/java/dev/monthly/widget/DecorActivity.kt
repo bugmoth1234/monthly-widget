@@ -468,6 +468,12 @@ class DecorActivity : Activity() {
             decor = decor.copy(highlight = checked)
             save()
         }
+        val cbp = findViewById<android.widget.CheckBox>(R.id.cb_projects)
+        cbp.isChecked = decor.showProjects
+        cbp.setOnCheckedChangeListener { _, checked ->
+            decor = decor.copy(showProjects = checked)
+            save()
+        }
     }
 
     // ---------- 추천 테마 ----------

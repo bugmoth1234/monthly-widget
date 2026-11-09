@@ -19,10 +19,25 @@ data class Item(
     val color: Int = -1,        // -1 = 기본 색
     val emoji: String = "",
     val yearly: Boolean = false, // 디데이 매년 반복
+    val projectId: Long = 0,     // 0 = 프로젝트 없음
 )
 
 /** 특정 날짜에 표시되는 일정 (매년 반복이면 그 해의 날짜). */
-data class Entry(val item: Item, val date: LocalDate)
+data class Entry(val item: Item, val date: LocalDate, val overdue: Boolean = false)
+
+/** 작업 프로젝트 (회지 1권, 커뮤 오픈 등). 진행률은 체크리스트 자동 또는 분량 직접 입력. */
+data class Project(
+    val id: Long,
+    val name: String,
+    val emoji: String = "",
+    val color: Int = 0,          // 팔레트 번호
+    val deadline: LocalDate,
+    val link: String = "",       // 작업 사이트 주소
+    val manual: Boolean = false, // true면 분량 직접 입력
+    val manualDone: Int = 0,
+    val manualTotal: Int = 10,
+    val unit: String = "",
+)
 
 /** cx, cy: 위젯 너비·높이 대비 중심 위치(0~1), w: 위젯 너비 대비 스티커 너비, rot: 각도 */
 data class Sticker(val id: String, val file: String, val cx: Float, val cy: Float, val w: Float, val rot: Float)
@@ -50,6 +65,7 @@ data class Theme(
     val weekdayEn: Boolean = false,
     val border: Int = 0,          // 0 없음, 1 선, 2 스티치(점선)
     val highlight: Boolean = true, // 가장 가까운 디데이를 크게
+    val showProjects: Boolean = true, // 위젯에 프로젝트 카드 (마감 가까운 2개)
 )
 
 object Store {
@@ -78,6 +94,7 @@ object Store {
                         color = o.optInt("color", -1),
                         emoji = o.optString("emoji", ""),
                         yearly = o.optBoolean("yearly", false),
+                        projectId = o.optLong("projectId", 0),
                     )
                 )
             } catch (e: Exception) {
@@ -100,9 +117,89 @@ object Store {
                     .put("color", item.color)
                     .put("emoji", item.emoji)
                     .put("yearly", item.yearly)
+                    .put("projectId", item.projectId)
             )
         }
         prefs(ctx).edit().putString(KEY_ITEMS, arr.toString()).apply()
+    }
+
+    // ---------- 프로젝트 ----------
+    fun loadProjects(ctx: Context): MutableList<Project> {
+        val raw = prefs(ctx).getString("projects", "[]") ?: "[]"
+        val arr = try { JSONArray(raw) } catch (e: Exception) { JSONArray() }
+        val out = mutableListOf<Project>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            try {
+                out.add(
+                    Project(
+                        id = o.getLong("id"),
+                        name = o.getString("name"),
+                        emoji = o.optString("emoji", ""),
+                        color = o.optInt("color", 0),
+                        deadline = LocalDate.parse(o.getString("deadline")),
+                        link = o.optString("link", ""),
+                        manual = o.optBoolean("manual", false),
+                        manualDone = o.optInt("manualDone", 0),
+                        manualTotal = o.optInt("manualTotal", 10),
+                        unit = o.optString("unit", ""),
+                    )
+                )
+            } catch (e: Exception) {
+            }
+        }
+        return out
+    }
+
+    fun saveProjects(ctx: Context, list: List<Project>) {
+        val arr = JSONArray()
+        for (p in list) {
+            arr.put(
+                JSONObject()
+                    .put("id", p.id).put("name", p.name).put("emoji", p.emoji).put("color", p.color)
+                    .put("deadline", p.deadline.toString()).put("link", p.link)
+                    .put("manual", p.manual).put("manualDone", p.manualDone)
+                    .put("manualTotal", p.manualTotal).put("unit", p.unit)
+            )
+        }
+        prefs(ctx).edit().putString("projects", arr.toString()).apply()
+    }
+
+    /** (완료, 전체) */
+    fun progress(p: Project, items: List<Item>): Pair<Int, Int> {
+        if (p.manual) return Pair(p.manualDone.coerceAtLeast(0), p.manualTotal.coerceAtLeast(1))
+        val list = items.filter { it.projectId == p.id }
+        return Pair(list.count { it.done }, list.size)
+    }
+
+    fun percent(p: Project, items: List<Item>): Int {
+        val (d, t) = progress(p, items)
+        return if (t <= 0) 0 else (d * 100 / t).coerceIn(0, 100)
+    }
+
+    // ---------- 설정 ----------
+    fun carryOver(ctx: Context): Boolean = prefs(ctx).getBoolean("carry", true)
+    fun setCarryOver(ctx: Context, v: Boolean) { prefs(ctx).edit().putBoolean("carry", v).apply() }
+
+    // ---------- 백업용 원본 ----------
+    fun rawExport(ctx: Context): JSONObject {
+        val pr = prefs(ctx)
+        return JSONObject()
+            .put("version", 1)
+            .put("items", pr.getString(KEY_ITEMS, "[]"))
+            .put("projects", pr.getString("projects", "[]"))
+            .put("theme", pr.getString(KEY_THEME, "{}"))
+            .put("carry", pr.getBoolean("carry", true))
+    }
+
+    fun rawImport(ctx: Context, o: JSONObject) {
+        prefs(ctx).edit()
+            .putString(KEY_ITEMS, o.optString("items", "[]"))
+            .putString("projects", o.optString("projects", "[]"))
+            .putString(KEY_THEME, o.optString("theme", "{}"))
+            .putBoolean("carry", o.optBoolean("carry", true))
+            .putInt(KEY_OFFSET, 0)
+            .apply()
     }
 
     // ---------- 꾸미기 ----------
@@ -151,6 +248,7 @@ object Store {
                 weekdayEn = o.optBoolean("weekdayEn", false),
                 border = o.optInt("border", 0),
                 highlight = o.optBoolean("highlight", true),
+                showProjects = o.optBoolean("showProjects", true),
             )
         } catch (e: Exception) {
             Theme()
@@ -177,6 +275,7 @@ object Store {
             .put("customAccent", t.customAccent).put("bleed", t.bleed)
             .put("titleStyle", t.titleStyle).put("weekdayEn", t.weekdayEn)
             .put("border", t.border).put("highlight", t.highlight)
+            .put("showProjects", t.showProjects)
         prefs(ctx).edit().putString(KEY_THEME, o.toString()).apply()
     }
 
@@ -219,13 +318,20 @@ object Store {
             .minWithOrNull(compareBy<Entry>({ it.date }, { it.item.id }))
 
     /** 그 달의 일정 + 그 뒤로 다가오는 디데이. 완료한 할 일은 맨 뒤로. */
-    fun entries(all: List<Item>, ym: YearMonth, today: LocalDate): List<Entry> {
+    fun entries(all: List<Item>, ym: YearMonth, today: LocalDate, carry: Boolean = false): List<Entry> {
         val monthEnd = ym.atEndOfMonth()
+        val isCurrent = ym == YearMonth.from(today)
         val out = mutableListOf<Entry>()
         for (item in all) {
+            val openTodo = item.type == ItemType.TODO && !item.done
             val occ = occurrenceIn(item, ym)
             if (occ != null) {
-                out.add(Entry(item, occ))
+                out.add(Entry(item, occ, carry && isCurrent && openTodo && occ.isBefore(today)))
+                continue
+            }
+            // 못 한 일 이월: 지난달 이전의 미완료 할 일도 이번 달 목록에 올림
+            if (carry && isCurrent && openTodo && item.date.isBefore(ym.atDay(1))) {
+                out.add(Entry(item, item.date, true))
                 continue
             }
             if (item.type == ItemType.DDAY) {
@@ -234,7 +340,7 @@ object Store {
             }
         }
         return out.sortedWith(
-            compareBy<Entry>({ it.item.type == ItemType.TODO && it.item.done }, { it.date }, { it.item.id })
+            compareBy<Entry>({ it.item.type == ItemType.TODO && it.item.done }, { !it.overdue }, { it.date }, { it.item.id })
         )
     }
 }

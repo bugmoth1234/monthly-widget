@@ -1,0 +1,52 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pj_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
+
+    <TextView
+        android:id="@+id/pj_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/pj_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <ImageView
+        android:id="@+id/pj_bar"
+        android:layout_width="54dp"
+        android:layout_height="6dp"
+        android:layout_marginStart="6dp"
+        android:scaleType="fitXY" />
+
+    <TextView
+        android:id="@+id/pj_pct"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:gravity="end"
+        android:minWidth="30dp"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/pj_dday"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:gravity="end"
+        android:minWidth="40dp"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+</LinearLayout>

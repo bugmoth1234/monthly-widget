@@ -157,6 +157,22 @@ object Decor {
         return out
     }
 
+    /** 프로젝트 진행 막대 (둥근 막대 그림) */
+    fun progressBar(w: Int, h: Int, percent: Int, color: Int, track: Int): Bitmap {
+        val bmp = Bitmap.createBitmap(w.coerceAtLeast(2), h.coerceAtLeast(2), Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        val r = h / 2f
+        p.color = track
+        c.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), r, r, p)
+        val fw = w * percent.coerceIn(0, 100) / 100f
+        if (fw > 0f) {
+            p.color = color
+            c.drawRoundRect(RectF(0f, 0f, maxOf(fw, h.toFloat()), h.toFloat()), r, r, p)
+        }
+        return bmp
+    }
+
     fun renderStickers(ctx: Context, stickers: List<Sticker>, w: Int, h: Int): Bitmap? {
         if (stickers.isEmpty()) return null
         val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)

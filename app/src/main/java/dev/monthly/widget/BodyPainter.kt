@@ -108,9 +108,50 @@ object BodyPainter {
         y += 7 * u
 
         // 목록
-        val plan = WidgetRenderer.listPlan(items, ym, today, theme)
+        val plan = WidgetRenderer.listPlan(ctx, items, ym, today, theme)
         val entries = plan.rest
         val rowH = 21 * u * k
+
+        // 프로젝트 줄
+        for (pj in plan.projects) {
+            if (y + rowH > h) break
+            val col = Palette.color(pj.color)
+            val pct = Store.percent(pj, items)
+            val left = java.time.temporal.ChronoUnit.DAYS.between(today, pj.deadline)
+            val mid = y + rowH / 2f
+            centerText(pj.emoji.trim().ifEmpty { "📁" }, 9 * u, mid, 14 * u * k, ink.primary)
+            p.textAlign = Paint.Align.RIGHT
+            p.textSize = 12 * u * k
+            p.isFakeBoldText = true
+            p.color = if (left in 0..7) ink.sun else col
+            var fm = p.fontMetrics
+            val dd = Fmt.dday(pj.deadline, today)
+            c.drawText(dd, w.toFloat(), mid - (fm.ascent + fm.descent) / 2f, p)
+            val ddW = maxOf(p.measureText(dd), 40 * u)
+            p.isFakeBoldText = false
+            p.textSize = 11 * u * k
+            p.color = ink.secondary
+            fm = p.fontMetrics
+            val pctX = w - ddW - 6 * u
+            c.drawText("$pct%", pctX, mid - (fm.ascent + fm.descent) / 2f, p)
+            val barR = pctX - 32 * u
+            val barL = barR - 54 * u
+            fill.color = ink.divider
+            c.drawRoundRect(RectF(barL, mid - 3 * u, barR, mid + 3 * u), 3 * u, 3 * u, fill)
+            if (pct > 0) {
+                fill.color = col
+                c.drawRoundRect(RectF(barL, mid - 3 * u, barL + maxOf(54 * u * pct / 100f, 6 * u), mid + 3 * u), 3 * u, 3 * u, fill)
+            }
+            p.textAlign = Paint.Align.LEFT
+            p.textSize = 13 * u * k
+            p.isFakeBoldText = true
+            p.color = ink.primary
+            fm = p.fontMetrics
+            val nx = 22 * u
+            c.drawText(Fonts.ellipsize(pj.name, p, barL - nx - 6 * u), nx, mid - (fm.ascent + fm.descent) / 2f, p)
+            p.isFakeBoldText = false
+            y += rowH
+        }
 
         // 가장 가까운 디데이 강조 카드
         plan.highlight?.let { hl ->
@@ -147,7 +188,7 @@ object BodyPainter {
         }
 
         p.textAlign = Paint.Align.LEFT
-        if (entries.isEmpty() && plan.highlight == null) {
+        if (entries.isEmpty() && plan.highlight == null && plan.projects.isEmpty()) {
             p.textSize = 12 * u * k
             p.color = ink.secondary
             val fm = p.fontMetrics
@@ -176,9 +217,9 @@ object BodyPainter {
             p.textAlign = Paint.Align.LEFT
             var x = badgeW + 6 * u
             p.textSize = 12 * u * k
-            p.color = if (faded) ink.muted else ink.secondary
+            p.color = if (faded) ink.muted else if (e.overdue) ink.sun else ink.secondary
             var fm = p.fontMetrics
-            val dateText = Fmt.shortDate(e.date)
+            val dateText = if (e.overdue) "밀림 " + Fmt.shortDate(e.date) else Fmt.shortDate(e.date)
             c.drawText(dateText, x, mid - (fm.ascent + fm.descent) / 2f, p)
             x += p.measureText(dateText) + 8 * u
 

@@ -196,6 +196,11 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
         android:text="가장 가까운 디데이를 카드로 크게 보여주기" />
+    <CheckBox
+        android:id="@+id/cb_projects"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="위젯에 프로젝트 보여주기 (마감 가까운 2개)" />
 
     <TextView style="@style/SectionLabel" android:text="글꼴" />
     <TextView

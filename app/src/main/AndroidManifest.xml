@@ -13,6 +13,8 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ProjectsActivity" android:exported="false" android:label="프로젝트" />
+        <activity android:name=".ProjectDetailActivity" android:exported="false" android:label="프로젝트" />
         <activity android:name=".DecorActivity" android:exported="false" android:label="꾸미기" />
 
         <receiver android:name=".MonthWidgetProvider" android:exported="true">
