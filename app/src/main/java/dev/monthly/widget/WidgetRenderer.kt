@@ -287,7 +287,8 @@ object WidgetRenderer {
             rv.addView(R.id.list, row(rp.textRow("일정이 없어요. 눌러서 추가해 보세요.")))
         }
         for (e in plan.rest.take(plan.maxRows)) {
-            val r = row(rp.itemRow(e, today))
+            val r = row(bpIndent.itemRow(e, today))
+            r.setViewPadding(R.id.img_root, indent, 0, 0, 0)
             if (e.item.type == ItemType.TODO) {
                 r.setViewVisibility(R.id.img_tap, View.VISIBLE)
                 r.setOnClickPendingIntent(R.id.img_tap, togglePI(ctx, e.item.id))
@@ -295,7 +296,9 @@ object WidgetRenderer {
             rv.addView(R.id.list, r)
         }
         if (plan.rest.size > plan.maxRows) {
-            rv.addView(R.id.list, row(rp.textRow("외 ${plan.rest.size - plan.maxRows}개 더 있음")))
+            val more = row(bpIndent.textRow("외 ${plan.rest.size - plan.maxRows}개 더 있음"))
+            more.setViewPadding(R.id.img_root, indent, 0, 0, 0)
+            rv.addView(R.id.list, more)
         }
     }
 
@@ -440,14 +443,12 @@ object WidgetRenderer {
             empty.setTextColor(R.id.more_text, ink.secondary)
             rv.addView(R.id.list, empty)
         } else {
+            val rowIndent = (22 * d).toInt() // 프로젝트 아래 일정과 ○ 시작 위치를 맞춤
             for (e in visible.take(maxRows)) {
-                rv.addView(R.id.list, itemRow(ctx, e, theme, ink, today))
+                rv.addView(R.id.list, itemRow(ctx, e, theme, ink, today, rowIndent))
             }
             if (visible.size > maxRows) {
-                val more = RemoteViews(pkg, R.layout.widget_more)
-                more.setTextViewText(R.id.more_text, "외 ${visible.size - maxRows}개 더 있음")
-                more.setTextColor(R.id.more_text, ink.secondary)
-                rv.addView(R.id.list, more)
+                rv.addView(R.id.list, textRow(ctx, "외 ${visible.size - maxRows}개 더 있음", ink.secondary, (22 * d).toInt()))
             }
         }
 
