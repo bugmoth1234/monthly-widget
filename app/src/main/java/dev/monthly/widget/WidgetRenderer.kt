@@ -248,20 +248,26 @@ object WidgetRenderer {
         val bp = BodyPainter(theme, ink, tf, bw, u)
 
         rv.setImageViewBitmap(R.id.body_img, bp.calendar(items, ym, today))
+
+        // 목록 줄은 실제 화면 해상도(축소 없이)로 그려서, 공간이 모자라도 글자가 작아지지 않게 함
+        val d = ctx.resources.displayMetrics.density
+        val rowW = (bw * d / u).toInt()
+        val rp = BodyPainter(theme, ink, tf, rowW, d)
         for (id in intArrayOf(R.id.caption, R.id.weekday_row, R.id.grid)) rv.setViewVisibility(id, View.GONE)
         rv.setViewVisibility(R.id.body_img, View.VISIBLE)
 
         rv.removeAllViews(R.id.list)
         fun row(bmp: android.graphics.Bitmap): RemoteViews {
+            bmp.density = ctx.resources.displayMetrics.densityDpi // 1:1로 그려지게 (화면 크기 설정 대응)
             val r = RemoteViews(pkg, R.layout.widget_img_row)
             r.setImageViewBitmap(R.id.img_row, bmp)
             return r
         }
         val plan = listPlan(ctx, items, ym, today, theme)
-        val indent = (22 * u).toInt()
-        val bpIndent = BodyPainter(theme, ink, tf, (bw - indent).coerceAtLeast(1), u)
+        val indent = (22 * d).toInt()
+        val bpIndent = BodyPainter(theme, ink, tf, (rowW - indent).coerceAtLeast(1), d)
         for (pj in plan.projects) {
-            val r = row(bp.projectRow(pj, items, today))
+            val r = row(rp.projectRow(pj, items, today))
             r.setOnClickPendingIntent(R.id.img_root, projectPI(ctx, pj))
             rv.addView(R.id.list, r)
             val task = plan.projectTasks[pj.id]
@@ -276,12 +282,12 @@ object WidgetRenderer {
         if (plan.projects.isNotEmpty() && (plan.highlight != null || plan.rest.isNotEmpty())) {
             rv.addView(R.id.list, sepRow(ctx, ink))
         }
-        plan.highlight?.let { rv.addView(R.id.list, row(bp.highlight(it, today))) }
+        plan.highlight?.let { rv.addView(R.id.list, row(rp.highlight(it, today))) }
         if (plan.rest.isEmpty() && plan.highlight == null && plan.projects.isEmpty()) {
-            rv.addView(R.id.list, row(bp.textRow("일정이 없어요. 눌러서 추가해 보세요.")))
+            rv.addView(R.id.list, row(rp.textRow("일정이 없어요. 눌러서 추가해 보세요.")))
         }
         for (e in plan.rest.take(plan.maxRows)) {
-            val r = row(bp.itemRow(e, today))
+            val r = row(rp.itemRow(e, today))
             if (e.item.type == ItemType.TODO) {
                 r.setViewVisibility(R.id.img_tap, View.VISIBLE)
                 r.setOnClickPendingIntent(R.id.img_tap, togglePI(ctx, e.item.id))
@@ -289,7 +295,7 @@ object WidgetRenderer {
             rv.addView(R.id.list, r)
         }
         if (plan.rest.size > plan.maxRows) {
-            rv.addView(R.id.list, row(bp.textRow("외 ${plan.rest.size - plan.maxRows}개 더 있음")))
+            rv.addView(R.id.list, row(rp.textRow("외 ${plan.rest.size - plan.maxRows}개 더 있음")))
         }
     }
 
