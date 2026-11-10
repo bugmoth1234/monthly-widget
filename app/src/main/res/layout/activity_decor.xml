@@ -391,7 +391,8 @@
                             android:text="이 달만 다른 이미지" />
                         <Button
                             android:id="@+id/btn_header_clear"
-                            style="?android:attr/borderlessButtonStyle"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:textColor="?attr/colorError"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="이 달에 보이는 제목 이미지 지우기" />
@@ -773,7 +774,7 @@
             </LinearLayout>
             <Button
                 android:id="@+id/btn_reset"
-                style="?android:attr/borderlessButtonStyle"
+                style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"

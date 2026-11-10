@@ -188,13 +188,13 @@ class BodyPainter(
             c.drawRoundRect(RectF(0f, mid - 8 * u * k, pw, mid + 8 * u * k), 8 * u, 8 * u, fill)
             text(t, pw / 2f, mid, 11 * u * k, Palette.onColor(ci, theme), Paint.Align.CENTER)
         } else {
-            text(if (item.done) "✓" else "○", badgeW / 2f, mid, 12 * u * k, if (item.done) ink.muted else ci, Paint.Align.CENTER)
+            text(if (item.done) "✓" else "○", badgeW / 2f, mid, 13 * u * k, if (item.done) ink.muted else ci, Paint.Align.CENTER)
         }
 
         var x = badgeW + 6 * u
         val dateText = if (e.overdue) "밀림 " + Fmt.shortDate(e.date) else Fmt.shortDate(e.date)
-        text(dateText, x, mid, 12 * u * k, if (faded) ink.muted else if (e.overdue) ink.sun else ink.secondary, Paint.Align.LEFT)
-        x += measure(dateText, 12 * u * k) + 8 * u
+        text(dateText, x, mid, 13 * u * k, if (faded) ink.muted else if (e.overdue) ink.sun else ink.secondary, Paint.Align.LEFT)
+        x += measure(dateText, 13 * u * k) + 8 * u
         val title = fit(Fmt.titleWithEmoji(item), 13 * u * k, w - x)
         text(title, x, mid, 13 * u * k, if (faded) ink.muted else ink.primary, Paint.Align.LEFT)
         return bmp
@@ -202,7 +202,7 @@ class BodyPainter(
 
     fun textRow(s: String): Bitmap {
         val bmp = canvas(rowH)
-        text(fit(s, 12 * u * k, w.toFloat()), 0f, rowH / 2f, 12 * u * k, ink.secondary, Paint.Align.LEFT)
+        text(fit(s, 13 * u * k, w.toFloat()), 0f, rowH / 2f, 13 * u * k, ink.secondary, Paint.Align.LEFT)
         return bmp
     }
 }

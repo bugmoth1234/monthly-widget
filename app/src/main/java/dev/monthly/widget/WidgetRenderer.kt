@@ -163,6 +163,7 @@ object WidgetRenderer {
         if (indentPx > 0) row.setViewPadding(R.id.item_root, indentPx, 0, 0, 0)
         if (item.type == ItemType.DDAY) {
             row.setTextViewText(R.id.item_badge, Fmt.dday(e.date, today))
+            row.setTextViewTextSize(R.id.item_badge, android.util.TypedValue.COMPLEX_UNIT_SP, 11f) // 배지 안 숫자만 작게
             row.setTextColor(R.id.item_badge, Palette.onColor(ci, theme))
             row.setViewVisibility(R.id.item_pill, View.VISIBLE)
             row.setInt(R.id.item_pill, "setColorFilter", ci)
