@@ -130,14 +130,28 @@ class ProjectDetailActivity : AppCompatActivity() {
                 val date = v.findViewById<TextView>(R.id.row_date)
                 title.text = t.title
                 title.alpha = if (t.done) 0.4f else 1f
-                val late = !t.done && t.date.isBefore(LocalDate.now())
+                val late = t.type == ItemType.TODO && !t.done && t.date.isBefore(LocalDate.now())
                 date.text = (if (late) "밀림 · " else "") + Fmt.longDate(t.date)
                 date.setTextColor(getColor(if (late) R.color.sunday else R.color.text_secondary))
-                check.visibility = View.VISIBLE
                 check.setOnCheckedChangeListener(null)
-                check.isChecked = t.done
-                check.buttonTintList = ColorStateList.valueOf(Palette.color(project?.color ?: 0))
-                check.setOnCheckedChangeListener { _, c -> updateTask(t.copy(done = c)) }
+                val badge = v.findViewById<TextView>(R.id.row_badge)
+                val col = Palette.color(project?.color ?: 0)
+                if (t.type == ItemType.TODO) {
+                    check.visibility = View.VISIBLE
+                    check.isChecked = t.done
+                    check.buttonTintList = ColorStateList.valueOf(col)
+                    check.setOnCheckedChangeListener { _, c -> updateTask(t.copy(done = c)) }
+                } else {
+                    // 일정·디데이는 체크 없이 배지만
+                    check.visibility = View.GONE
+                    badge.visibility = View.VISIBLE
+                    badge.text = if (t.type == ItemType.DDAY) Fmt.dday(t.date, LocalDate.now()) else (t.time.ifBlank { "일정" })
+                    val pill = android.graphics.drawable.GradientDrawable()
+                    pill.cornerRadius = 10 * resources.displayMetrics.density
+                    pill.setColor(col)
+                    badge.background = pill
+                    badge.setTextColor(Palette.onColor(col, Store.loadTheme(this@ProjectDetailActivity)))
+                }
                 return v
             }
         }

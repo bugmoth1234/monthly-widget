@@ -33,6 +33,13 @@
             android:layout_weight="1"
             android:text="할 일" />
         <Button
+            android:id="@+id/btn_type_event"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="일정" />
+        <Button
             android:id="@+id/btn_type_dday"
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
@@ -64,6 +71,31 @@
         android:layout_marginTop="8dp"
         android:gravity="start|center_vertical"
         app:icon="@drawable/ic_date" />
+
+    <LinearLayout
+        android:id="@+id/time_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+        <Button
+            android:id="@+id/input_time"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="start|center_vertical"
+            android:text="시간 추가 (선택)" />
+        <Button
+            android:id="@+id/btn_time_clear"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="시간 빼기"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <com.google.android.material.textfield.TextInputLayout
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"

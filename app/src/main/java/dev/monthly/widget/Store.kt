@@ -8,7 +8,8 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 
-enum class ItemType { TODO, DDAY }
+/** 할 일(체크), 디데이(카운트다운), 일정(약속 — 체크·카운트다운 없음) */
+enum class ItemType { TODO, DDAY, EVENT }
 
 data class Item(
     val id: Long,
@@ -20,6 +21,7 @@ data class Item(
     val emoji: String = "",
     val yearly: Boolean = false, // 디데이 매년 반복
     val projectId: Long = 0,     // 0 = 프로젝트 없음
+    val time: String = "",       // "HH:mm" (일정용, 선택)
 )
 
 /** 특정 날짜에 표시되는 일정 (매년 반복이면 그 해의 날짜). */
@@ -97,6 +99,7 @@ object Store {
                         emoji = o.optString("emoji", ""),
                         yearly = o.optBoolean("yearly", false),
                         projectId = o.optLong("projectId", 0),
+                        time = o.optString("time", ""),
                     )
                 )
             } catch (e: Exception) {
@@ -120,6 +123,7 @@ object Store {
                     .put("emoji", item.emoji)
                     .put("yearly", item.yearly)
                     .put("projectId", item.projectId)
+                    .put("time", item.time)
             )
         }
         prefs(ctx).edit().putString(KEY_ITEMS, arr.toString()).apply()
@@ -170,7 +174,7 @@ object Store {
     /** (완료, 전체) */
     fun progress(p: Project, items: List<Item>): Pair<Int, Int> {
         if (p.manual) return Pair(p.manualDone.coerceAtLeast(0), p.manualTotal.coerceAtLeast(1))
-        val list = items.filter { it.projectId == p.id }
+        val list = items.filter { it.projectId == p.id && it.type == ItemType.TODO } // 진행률은 할 일만
         return Pair(list.count { it.done }, list.size)
     }
 
@@ -321,6 +325,10 @@ object Store {
         return if (d.isBefore(item.date)) item.date else d
     }
 
+    /** 끝난 것: 완료한 할 일, 지난 일정 → 흐리게, 목록 아래쪽 */
+    fun finished(e: Entry, today: LocalDate): Boolean =
+        (e.item.type == ItemType.TODO && e.item.done) || (e.item.type == ItemType.EVENT && e.date.isBefore(today))
+
     /** 오늘 이후 가장 가까운 디데이 (없으면 null) */
     fun nearestDday(all: List<Item>, today: LocalDate): Entry? =
         all.filter { it.type == ItemType.DDAY }
@@ -351,7 +359,7 @@ object Store {
             }
         }
         return out.sortedWith(
-            compareBy<Entry>({ it.item.type == ItemType.TODO && it.item.done }, { !it.overdue }, { it.date }, { it.item.id })
+            compareBy<Entry>({ finished(it, today) }, { !it.overdue }, { it.date }, { it.item.time }, { it.item.id })
         )
     }
 }
@@ -405,6 +413,10 @@ object Fmt {
             else -> "D+${-d}"
         }
     }
+
+    /** 11/14 (토) 20:00 */
+    fun shortWhen(date: LocalDate, time: String): String =
+        if (time.isBlank()) shortDate(date) else "${shortDate(date)} $time"
 
     fun shortDate(date: LocalDate): String =
         "${date.monthValue}/${date.dayOfMonth} (${weekday(date.dayOfWeek)})"

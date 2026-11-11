@@ -177,11 +177,14 @@ class BodyPainter(
         val bmp = canvas(rowH)
         val item = e.item
         val ci = Palette.itemColor(item, theme)
-        val faded = item.type == ItemType.TODO && item.done
+        val faded = Store.finished(e, today)
         val mid = rowH / 2f
         val badgeW = badgeDp * u
 
-        if (item.type == ItemType.DDAY) {
+        if (item.type == ItemType.EVENT) {
+            fill.color = if (faded) ink.muted else ci
+            c.drawCircle(badgeW / 2f, mid, 3.5f * u * k, fill)
+        } else if (item.type == ItemType.DDAY) {
             val t = Fmt.dday(e.date, today)
             val pw = maxOf(badgeW, measure(t, 11 * u * k) + 8 * u)
             fill.color = ci
@@ -192,7 +195,8 @@ class BodyPainter(
         }
 
         var x = badgeW + 6 * u
-        val dateText = if (e.overdue) "밀림 " + Fmt.shortDate(e.date) else Fmt.shortDate(e.date)
+        val whenText = Fmt.shortWhen(e.date, item.time)
+        val dateText = if (e.overdue) "밀림 $whenText" else whenText
         text(dateText, x, mid, 13 * u * k, if (faded) ink.muted else if (e.overdue) ink.sun else ink.secondary, Paint.Align.LEFT)
         x += measure(dateText, 13 * u * k) + 8 * u
         val title = fit(Fmt.titleWithEmoji(item), 13 * u * k, w - x)

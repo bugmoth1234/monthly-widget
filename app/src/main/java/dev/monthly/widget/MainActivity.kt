@@ -28,6 +28,8 @@ import com.google.android.material.floatingactionbutton.ExtendedFloatingActionBu
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputLayout
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -127,15 +129,15 @@ class MainActivity : AppCompatActivity() {
         if (sel != null) {
             val day = items.mapNotNull { item ->
                 Store.occurrenceIn(item, YearMonth.from(sel))?.takeIf { it == sel }?.let { Entry(item, it) }
-            }.sortedWith(compareBy<Entry>({ it.item.type == ItemType.TODO && it.item.done }, { it.item.id }))
+            }.sortedWith(compareBy<Entry>({ Store.finished(it, today) }, { it.item.time }, { it.item.id }))
             out.add(Row.Header(Fmt.monthDay(sel) + (if (day.isEmpty()) " · 일정 없음 (날짜를 길게 누르면 추가)" else "")))
             day.forEach { out.add(Row.EntryRow(it)) }
             return out
         }
         val all = Store.entries(items, ym, today, Store.carryOver(this))
         val overdue = all.filter { it.overdue }
-        val done = all.filter { it.item.type == ItemType.TODO && it.item.done }
-        val open = all.filter { !it.overdue && !(it.item.type == ItemType.TODO && it.item.done) }
+        val done = all.filter { Store.finished(it, today) }
+        val open = all.filter { !it.overdue && !Store.finished(it, today) }
         if (overdue.isNotEmpty()) {
             out.add(Row.Header("밀린 일 ${overdue.size}"))
             overdue.forEach { out.add(Row.EntryRow(it)) }
@@ -145,7 +147,7 @@ class MainActivity : AppCompatActivity() {
             open.forEach { out.add(Row.EntryRow(it)) }
         }
         if (done.isNotEmpty()) {
-            out.add(Row.Header("완료 ${done.size}"))
+            out.add(Row.Header("완료·지난 일정 ${done.size}"))
             done.forEach { out.add(Row.EntryRow(it)) }
         }
         if (out.isEmpty()) out.add(Row.Header("이 달에는 일정이 없어요 · ＋ 버튼이나 날짜를 길게 눌러 추가"))
@@ -187,13 +189,49 @@ class MainActivity : AppCompatActivity() {
         var date: LocalDate = existing?.date ?: presetDate ?: if (ym == YearMonth.from(today)) today else ym.atDay(1)
         var color = existing?.color ?: -1
 
-        toggle.check(if (existing?.type == ItemType.DDAY) R.id.btn_type_dday else R.id.btn_type_todo)
+        toggle.check(
+            when (existing?.type) {
+                ItemType.DDAY -> R.id.btn_type_dday
+                ItemType.EVENT -> R.id.btn_type_event
+                else -> R.id.btn_type_todo
+            }
+        )
         fun isDday() = toggle.checkedButtonId == R.id.btn_type_dday
-        yearlySwitch.isChecked = existing?.yearly ?: false
-        yearlySwitch.visibility = if (isDday()) View.VISIBLE else View.GONE
-        toggle.addOnButtonCheckedListener { _, _, _ ->
-            yearlySwitch.visibility = if (isDday()) View.VISIBLE else View.GONE
+        fun isEvent() = toggle.checkedButtonId == R.id.btn_type_event
+
+        // 시간 (일정만)
+        val timeRow = v.findViewById<View>(R.id.time_row)
+        val timeBtn = v.findViewById<Button>(R.id.input_time)
+        val timeClear = v.findViewById<Button>(R.id.btn_time_clear)
+        var time = existing?.time ?: ""
+        fun showTime() {
+            timeBtn.text = if (time.isBlank()) "시간 추가 (선택)" else "시간: $time"
+            timeClear.visibility = if (time.isBlank()) View.GONE else View.VISIBLE
         }
+        showTime()
+        timeBtn.setOnClickListener {
+            val h = time.substringBefore(':').toIntOrNull() ?: 20
+            val m = time.substringAfter(':', "").toIntOrNull() ?: 0
+            val picker = MaterialTimePicker.Builder()
+                .setTimeFormat(TimeFormat.CLOCK_24H)
+                .setHour(h).setMinute(m)
+                .setTitleText("시간")
+                .build()
+            picker.addOnPositiveButtonClickListener {
+                time = String.format(java.util.Locale.US, "%02d:%02d", picker.hour, picker.minute)
+                showTime()
+            }
+            picker.show(supportFragmentManager, "time")
+        }
+        timeClear.setOnClickListener { time = ""; showTime() }
+
+        fun syncType() {
+            yearlySwitch.visibility = if (isDday()) View.VISIBLE else View.GONE
+            timeRow.visibility = if (isEvent()) View.VISIBLE else View.GONE
+        }
+        yearlySwitch.isChecked = existing?.yearly ?: false
+        syncType()
+        toggle.addOnButtonCheckedListener { _, _, _ -> syncType() }
 
         if (existing != null) {
             titleInput.setText(existing.title)
@@ -247,17 +285,22 @@ class MainActivity : AppCompatActivity() {
                 titleLayout.error = "내용을 입력해 주세요"
                 return@setOnClickListener
             }
-            val type = if (isDday()) ItemType.DDAY else ItemType.TODO
+            val type = when {
+                isDday() -> ItemType.DDAY
+                isEvent() -> ItemType.EVENT
+                else -> ItemType.TODO
+            }
             val emoji = emojiInput.text.toString().trim()
             val yearly = type == ItemType.DDAY && yearlySwitch.isChecked
             val project = projects.getOrNull(projectIndex - 1)
             val projectId = project?.id ?: 0L
             // 프로젝트 일정인데 색을 안 골랐으면 프로젝트 색을 따라감
             val finalColor = if (color < 0 && project != null) project.color else color
+            val finalTime = if (type == ItemType.EVENT) time else ""
             val item = existing?.copy(
                 date = date, title = title, type = type, color = finalColor,
-                emoji = emoji, yearly = yearly, projectId = projectId,
-            ) ?: Item(System.currentTimeMillis(), date, title, type, false, finalColor, emoji, yearly, projectId)
+                emoji = emoji, yearly = yearly, projectId = projectId, time = finalTime,
+            ) ?: Item(System.currentTimeMillis(), date, title, type, false, finalColor, emoji, yearly, projectId, finalTime)
             if (!yearly && YearMonth.from(date) != ym) ym = YearMonth.from(date)
             replace(item)
             sheet.dismiss()
@@ -370,7 +413,7 @@ class MainActivity : AppCompatActivity() {
             title.text = Fmt.titleWithEmoji(item)
             val parts = mutableListOf<String>()
             if (entry.overdue) parts.add("밀림")
-            parts.add(Fmt.longDate(entry.date))
+            parts.add(Fmt.longDate(entry.date) + (if (item.time.isNotBlank()) " ${item.time}" else ""))
             if (item.yearly) parts.add("매년")
             projectNames[item.projectId]?.let { parts.add(it) }
             date.text = parts.joinToString(" · ")
@@ -380,16 +423,16 @@ class MainActivity : AppCompatActivity() {
             )
             check.setOnCheckedChangeListener(null)
 
-            if (item.type == ItemType.DDAY) {
+            if (item.type != ItemType.TODO) {
                 check.visibility = View.GONE
                 badge.visibility = View.VISIBLE
-                badge.text = Fmt.dday(entry.date, LocalDate.now())
+                badge.text = if (item.type == ItemType.DDAY) Fmt.dday(entry.date, LocalDate.now()) else "일정"
                 val pill = GradientDrawable()
                 pill.cornerRadius = 10 * resources.displayMetrics.density
                 pill.setColor(ci)
                 badge.background = pill
                 badge.setTextColor(Palette.onColor(ci, widgetTheme))
-                title.alpha = 1f
+                title.alpha = if (Store.finished(entry, LocalDate.now())) 0.45f else 1f
             } else {
                 badge.visibility = View.GONE
                 check.visibility = View.VISIBLE

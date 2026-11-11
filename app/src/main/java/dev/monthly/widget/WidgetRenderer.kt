@@ -159,9 +159,13 @@ object WidgetRenderer {
         val item = e.item
         val row = RemoteViews(ctx.packageName, R.layout.widget_item)
         val ci = Palette.itemColor(item, theme)
-        val faded = item.type == ItemType.TODO && item.done
+        val faded = Store.finished(e, today)
         if (indentPx > 0) row.setViewPadding(R.id.item_root, indentPx, 0, 0, 0)
-        if (item.type == ItemType.DDAY) {
+        if (item.type == ItemType.EVENT) {
+            row.setTextViewText(R.id.item_badge, "●")
+            row.setTextViewTextSize(R.id.item_badge, android.util.TypedValue.COMPLEX_UNIT_SP, 9f)
+            row.setTextColor(R.id.item_badge, if (faded) ink.muted else ci)
+        } else if (item.type == ItemType.DDAY) {
             row.setTextViewText(R.id.item_badge, Fmt.dday(e.date, today))
             row.setTextViewTextSize(R.id.item_badge, android.util.TypedValue.COMPLEX_UNIT_SP, 11f) // 배지 안 숫자만 작게
             row.setTextColor(R.id.item_badge, Palette.onColor(ci, theme))
@@ -172,7 +176,8 @@ object WidgetRenderer {
             row.setTextColor(R.id.item_badge, if (item.done) ink.muted else ci)
             row.setOnClickPendingIntent(R.id.item_badge, togglePI(ctx, item.id))
         }
-        row.setTextViewText(R.id.item_date, if (e.overdue) "밀림 " + Fmt.shortDate(e.date) else Fmt.shortDate(e.date))
+        val whenText = Fmt.shortWhen(e.date, item.time)
+        row.setTextViewText(R.id.item_date, if (e.overdue) "밀림 $whenText" else whenText)
         row.setTextViewText(R.id.item_title, Fmt.titleWithEmoji(item))
         row.setTextColor(R.id.item_title, if (faded) ink.muted else ink.primary)
         row.setTextColor(R.id.item_date, if (faded) ink.muted else if (e.overdue) ink.sun else ink.secondary)
